@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+*.dll
+*.pdb
+*.log
+repo-runtime-status.txt
+.vs/
+.idea/

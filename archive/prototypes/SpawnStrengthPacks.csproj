@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>SpawnStrengthPacks</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="SpawnStrengthPacks.cs" />
+    <Reference Include="0Harmony" HintPath="C:\Users\James Kieley\AppData\Roaming\Thunderstore Mod Manager\DataFolder\REPO\profiles\modded\BepInEx\core\0Harmony.dll" />
+    <Reference Include="REPOLib" HintPath="C:\Users\James Kieley\AppData\Roaming\Thunderstore Mod Manager\DataFolder\REPO\profiles\modded\BepInEx\plugins\Zehs-REPOLib\REPOLib.dll" />
+    <Reference Include="Assembly-CSharp" HintPath="C:\Program Files (x86)\Steam\steamapps\common\REPO\REPO_Data\Managed\Assembly-CSharp.dll" />
+    <Reference Include="UnityEngine" HintPath="C:\Program Files (x86)\Steam\steamapps\common\REPO\REPO_Data\Managed\UnityEngine.dll" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="C:\Program Files (x86)\Steam\steamapps\common\REPO\REPO_Data\Managed\UnityEngine.CoreModule.dll" />
+    <Reference Include="PhotonUnityNetworking" HintPath="C:\Program Files (x86)\Steam\steamapps\common\REPO\REPO_Data\Managed\PhotonUnityNetworking.dll" />
+    <Reference Include="PhotonRealtime" HintPath="C:\Program Files (x86)\Steam\steamapps\common\REPO\REPO_Data\Managed\PhotonRealtime.dll" />
+  </ItemGroup>
+</Project>
