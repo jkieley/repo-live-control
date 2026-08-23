@@ -35,7 +35,7 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$built = Join-Path $repoRoot "src\RepoLiveControl\bin\Release\netstandard2.1\RepoLiveControlV2.dll"
+$built = Join-Path $repoRoot "src\RepoLiveControl\bin\Release\netstandard2.1\RepoLiveControlV4.dll"
 $pluginDir = Join-Path $ProfilePath "BepInEx\plugins\Codex-RepoLiveControl"
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
 Copy-Item -LiteralPath $built -Destination (Join-Path $pluginDir "RepoLiveControl.dll") -Force

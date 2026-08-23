@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet("enemy", "loot", "item", "despawn", "auto", "unstick", "status")]
+    [ValidateSet("enemy", "loot", "item", "despawn", "despawnitem", "auto", "unstick", "status")]
     [string]$Action,
 
     [Parameter(Position = 1)]
@@ -18,7 +18,7 @@ param(
 
 $pipe = [System.IO.Pipes.NamedPipeClientStream]::new(
     ".",
-    "CodexRepoLiveControlV3",
+    "CodexRepoLiveControlV5",
     [System.IO.Pipes.PipeDirection]::InOut)
 
 try {
@@ -30,6 +30,7 @@ try {
 
     switch ($Action) {
         "despawn" { $command = "despawn|$Target|$Count" }
+        "despawnitem" { $command = "despawnitem|$Target" }
         "auto" { $command = "auto|$Target" }
         "unstick" { $command = "unstick|loot" }
         "status" { $command = "status" }

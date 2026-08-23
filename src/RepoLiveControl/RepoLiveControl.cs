@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace RepoLiveControl
 {
-    [BepInPlugin("Codex.REPO.LiveControl.V2", "Codex REPO Live Control", "1.0.1")]
+    [BepInPlugin("Codex.REPO.LiveControl.V4", "Codex REPO Live Control", "1.2.1")]
     public sealed class Plugin : BaseUnityPlugin
     {
         private void Awake()
@@ -85,11 +85,19 @@ namespace RepoLiveControl
         }
     }
 
+    internal sealed class SpawnedItemRecord
+    {
+        internal GameObject Instance;
+        internal string Name;
+        internal bool IsWeapon;
+    }
+
     internal static class Bridge
     {
-        internal const string PipeName = "CodexRepoLiveControlV3";
-        private const string HarmonyId = "Codex.REPO.LiveControl.V2";
+        internal const string PipeName = "CodexRepoLiveControlV5";
+        private const string HarmonyId = "Codex.REPO.LiveControl.V4";
         private static readonly ConcurrentQueue<ControlRequest> Requests = new ConcurrentQueue<ControlRequest>();
+        private static readonly List<SpawnedItemRecord> SpawnedItems = new List<SpawnedItemRecord>();
         private static readonly string[] ExpensiveLootNames =
         {
             "Diamond Display",
@@ -97,6 +105,13 @@ namespace RepoLiveControl
             "Dragon Skull",
             "GoldTooth",
             "Server Rack"
+        };
+        private static readonly string[] WeaponTerms =
+        {
+            "weapon", "melee", "ranged", "gun", "pistol", "rifle", "shotgun",
+            "revolver", "blaster", "cannon", "launcher", "sword", "blade",
+            "knife", "dagger", "axe", "hatchet", "bat", "hammer", "mace",
+            "spear", "bow", "crossbow", "grenade", "mine", "bomb", "pan", "taser"
         };
 
         private static int started;
@@ -111,6 +126,8 @@ namespace RepoLiveControl
             Harmony.UnpatchID("Codex.REPO.SpawnBridge.V2");
             Harmony.UnpatchID("Codex.REPO.ControlBridge");
             Harmony.UnpatchID("Codex.REPO.LiveControl");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V2");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V3");
             new Harmony(HarmonyId).PatchAll(typeof(Bridge).Assembly);
 
             var serverThread = new Thread(ListenForRequests)
@@ -227,6 +244,9 @@ namespace RepoLiveControl
                     return;
                 case "despawn":
                     DespawnEnemies(request, Part(parts, 1, "all"), ParseInt(parts, 2, 0));
+                    return;
+                case "despawnitem":
+                    DespawnItems(request, Part(parts, 1, "all"));
                     return;
                 case "auto":
                     SetAutomaticEnemies(request, Part(parts, 1, "on"));
@@ -364,6 +384,12 @@ namespace RepoLiveControl
             if (spawned == null)
                 throw new InvalidOperationException("REPOLib returned no spawned item object.");
 
+            SpawnedItems.Add(new SpawnedItemRecord
+            {
+                Instance = spawned,
+                Name = item.itemName,
+                IsWeapon = IsWeaponItem(item)
+            });
             AppendName(job, item.itemName, 1);
             job.Spawned++;
         }
@@ -481,6 +507,40 @@ namespace RepoLiveControl
                 "OK Despawned {0} matching enemy object(s); kept {1}.",
                 destroyed,
                 Math.Min(keep, matches.Count)));
+        }
+
+        private static void DespawnItems(ControlRequest request, string selector)
+        {
+            if (PhotonNetwork.InRoom && !PhotonNetwork.IsMasterClient)
+                throw new InvalidOperationException("Only the host can despawn network items.");
+
+            bool weaponsOnly = selector.Equals("weapon", StringComparison.OrdinalIgnoreCase) ||
+                               selector.Equals("weapons", StringComparison.OrdinalIgnoreCase);
+            int destroyed = 0;
+            for (int index = SpawnedItems.Count - 1; index >= 0; index--)
+            {
+                SpawnedItemRecord item = SpawnedItems[index];
+                if (item.Instance == null)
+                {
+                    SpawnedItems.RemoveAt(index);
+                    continue;
+                }
+
+                bool matches = weaponsOnly ? item.IsWeapon :
+                    selector.Equals("all", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0;
+                if (!matches)
+                    continue;
+
+                PhotonNetwork.Destroy(item.Instance);
+                SpawnedItems.RemoveAt(index);
+                destroyed++;
+            }
+
+            Complete(request, string.Format(
+                "OK Despawned {0} matching bridge-spawned item object(s) for '{1}'.",
+                destroyed,
+                selector));
         }
 
         private static void SetAutomaticEnemies(ControlRequest request, string setting)
@@ -648,12 +708,96 @@ namespace RepoLiveControl
             if (selector.Equals("random", StringComparison.OrdinalIgnoreCase))
                 return items.Count == 0 ? null : items[UnityEngine.Random.Range(0, items.Count)];
 
+            if (selector.Equals("weapon", StringComparison.OrdinalIgnoreCase) ||
+                selector.Equals("weapons", StringComparison.OrdinalIgnoreCase))
+            {
+                var weapons = new List<Item>();
+                foreach (Item candidate in items)
+                {
+                    if (IsWeaponItem(candidate))
+                        weapons.Add(candidate);
+                }
+                return weapons.Count == 0 ? null : weapons[UnityEngine.Random.Range(0, weapons.Count)];
+            }
+
             foreach (Item item in items)
             {
                 if (item != null && item.itemName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)
                     return item;
             }
             return null;
+        }
+
+        private static bool IsWeaponItem(Item item)
+        {
+            if (item == null)
+                return false;
+            if (IsWeaponDescriptor(item.itemName))
+                return true;
+
+            const System.Reflection.BindingFlags flags =
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic;
+
+            foreach (System.Reflection.FieldInfo field in item.GetType().GetFields(flags))
+            {
+                if (!IsCategoryMember(field.Name))
+                    continue;
+                try
+                {
+                    object value = field.GetValue(item);
+                    if (value != null && IsWeaponDescriptor(value.ToString()))
+                        return true;
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (System.Reflection.PropertyInfo property in item.GetType().GetProperties(flags))
+            {
+                if (!IsCategoryMember(property.Name) || property.GetIndexParameters().Length != 0)
+                    continue;
+                try
+                {
+                    object value = property.GetValue(item, null);
+                    if (value != null && IsWeaponDescriptor(value.ToString()))
+                        return true;
+                }
+                catch
+                {
+                }
+            }
+            return false;
+        }
+
+        private static bool IsCategoryMember(string name)
+        {
+            string lower = (name ?? string.Empty).ToLowerInvariant();
+            return lower.Contains("type") || lower.Contains("category") ||
+                   lower.Contains("class") || lower.Contains("kind") ||
+                   lower.Contains("tag") || lower.Contains("weapon");
+        }
+
+        private static bool IsWeaponDescriptor(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            char[] normalized = value.ToLowerInvariant().ToCharArray();
+            for (int i = 0; i < normalized.Length; i++)
+            {
+                if (!char.IsLetterOrDigit(normalized[i]))
+                    normalized[i] = ' ';
+            }
+            string padded = " " + new string(normalized) + " ";
+            foreach (string term in WeaponTerms)
+            {
+                if (padded.IndexOf(" " + term + " ", StringComparison.Ordinal) >= 0)
+                    return true;
+            }
+            return false;
         }
 
         private static EnemyParent GetEnemyParent(EnemySetup setup)

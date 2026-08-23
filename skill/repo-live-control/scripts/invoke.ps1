@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet("enemy", "loot", "item", "despawn", "auto", "unstick", "status")]
+    [ValidateSet("enemy", "loot", "item", "despawn", "despawnitem", "auto", "unstick", "status")]
     [string]$Action,
 
     [Parameter(Position = 1)]
