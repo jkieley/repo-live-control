@@ -10,6 +10,7 @@ Invoke `scripts/invoke.ps1` with these parameters.
 | Spawn expensive loot | `loot` | `expensive` | requested | `safe` |
 | Spawn named loot | `loot` | prefab-name substring | requested | `safe` |
 | Spawn specific item | `item` | item-name substring | requested | `safe` |
+| Spawn each matching item type | `itemeach` | item-name substring | requested per type | requested placement |
 | Spawn random weapons | `item` | `weapon` | requested | requested placement |
 | Spawn at the user | `loot` or `item` | requested selector | requested | `at-player` |
 | Despawn all enemies | `despawn` | `all` | `0` (keep count) | unused |
@@ -17,6 +18,7 @@ Invoke `scripts/invoke.ps1` with these parameters.
 | Despawn bridge-spawned weapons | `despawnitem` | `weapon` | unused | unused |
 | Enable/disable automatic enemies | `auto` | `on` or `off` | unused | unused |
 | Fix wall-stuck loot | `unstick` | `loot` | unused | unused |
+| Duplicate all map loot | `duplicate` | `loot` | unused | `safe` |
 | Inspect state | `status` | unused | unused | unused |
 
 Examples:
@@ -29,8 +31,10 @@ scripts/invoke.ps1 despawnitem weapon
 scripts/invoke.ps1 loot expensive 20 safe
 scripts/invoke.ps1 item strength 100 at-player
 scripts/invoke.ps1 item weapon 100 at-player
+scripts/invoke.ps1 itemeach upgrade 3 at-player
 scripts/invoke.ps1 auto off
 scripts/invoke.ps1 unstick
+scripts/invoke.ps1 duplicate loot
 scripts/invoke.ps1 status
 ```
 

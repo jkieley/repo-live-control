@@ -35,13 +35,14 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$built = Join-Path $repoRoot "src\RepoLiveControl\bin\Release\netstandard2.1\RepoLiveControlV4.dll"
+$built = Join-Path $repoRoot "src\RepoLiveControl\bin\Release\netstandard2.1\RepoLiveControlV8.dll"
 $pluginDir = Join-Path $ProfilePath "BepInEx\plugins\Codex-RepoLiveControl"
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
-Copy-Item -LiteralPath $built -Destination (Join-Path $pluginDir "RepoLiveControl.dll") -Force
+$installed = Join-Path $pluginDir "RepoLiveControlV8.dll"
+Copy-Item -LiteralPath $built -Destination $installed -Force
 
 if ($InstallOnly) {
-    Write-Output "Installed RepoLiveControl.dll for the next game launch."
+    Write-Output "Installed RepoLiveControlV8.dll for the next game launch."
     exit 0
 }
 if (-not $process) {

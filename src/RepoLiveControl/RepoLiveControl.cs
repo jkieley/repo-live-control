@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace RepoLiveControl
 {
-    [BepInPlugin("Codex.REPO.LiveControl.V4", "Codex REPO Live Control", "1.2.1")]
+    [BepInPlugin("Codex.REPO.LiveControl.V8", "Codex REPO Live Control", "1.4.0")]
     public sealed class Plugin : BaseUnityPlugin
     {
         private void Awake()
@@ -92,10 +92,56 @@ namespace RepoLiveControl
         internal bool IsWeapon;
     }
 
+    internal sealed class DuplicateLootJob
+    {
+        internal readonly ControlRequest Request;
+        internal readonly List<PrefabRef> Prefabs;
+        internal readonly Vector3 Anchor;
+        internal readonly List<Vector3> Positions = new List<Vector3>();
+        internal int Spawned;
+        internal bool Finished;
+
+        internal DuplicateLootJob(ControlRequest request, List<PrefabRef> prefabs, Vector3 anchor)
+        {
+            Request = request;
+            Prefabs = prefabs;
+            Anchor = anchor;
+        }
+    }
+
+    internal sealed class ItemBatchJob
+    {
+        internal readonly ControlRequest Request;
+        internal readonly List<Item> Items;
+        internal readonly List<string> TypeNames;
+        internal readonly string Placement;
+        internal readonly int CountPerType;
+        internal readonly Vector3 Anchor;
+        internal readonly List<Vector3> ReservedPositions = new List<Vector3>();
+        internal int Spawned;
+        internal bool Finished;
+
+        internal ItemBatchJob(
+            ControlRequest request,
+            List<Item> items,
+            List<string> typeNames,
+            string placement,
+            int countPerType,
+            Vector3 anchor)
+        {
+            Request = request;
+            Items = items;
+            TypeNames = typeNames;
+            Placement = placement;
+            CountPerType = countPerType;
+            Anchor = anchor;
+        }
+    }
+
     internal static class Bridge
     {
-        internal const string PipeName = "CodexRepoLiveControlV5";
-        private const string HarmonyId = "Codex.REPO.LiveControl.V4";
+        internal const string PipeName = "CodexRepoLiveControlV8";
+        private const string HarmonyId = "Codex.REPO.LiveControl.V8";
         private static readonly ConcurrentQueue<ControlRequest> Requests = new ConcurrentQueue<ControlRequest>();
         private static readonly List<SpawnedItemRecord> SpawnedItems = new List<SpawnedItemRecord>();
         private static readonly string[] ExpensiveLootNames =
@@ -116,6 +162,8 @@ namespace RepoLiveControl
 
         private static int started;
         private static SpawnJob activeJob;
+        private static DuplicateLootJob activeDuplicateLootJob;
+        private static ItemBatchJob activeItemBatchJob;
 
         internal static void Start()
         {
@@ -128,6 +176,10 @@ namespace RepoLiveControl
             Harmony.UnpatchID("Codex.REPO.LiveControl");
             Harmony.UnpatchID("Codex.REPO.LiveControl.V2");
             Harmony.UnpatchID("Codex.REPO.LiveControl.V3");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V4");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V5");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V6");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V7");
             new Harmony(HarmonyId).PatchAll(typeof(Bridge).Assembly);
 
             var serverThread = new Thread(ListenForRequests)
@@ -201,6 +253,22 @@ namespace RepoLiveControl
 
         internal static void ProcessFrame()
         {
+            if (activeItemBatchJob != null)
+            {
+                ProcessItemBatchJob(activeItemBatchJob);
+                if (activeItemBatchJob.Finished)
+                    activeItemBatchJob = null;
+                return;
+            }
+
+            if (activeDuplicateLootJob != null)
+            {
+                ProcessDuplicateLootJob(activeDuplicateLootJob);
+                if (activeDuplicateLootJob.Finished)
+                    activeDuplicateLootJob = null;
+                return;
+            }
+
             if (activeJob != null)
             {
                 ProcessSpawnJob(activeJob);
@@ -242,6 +310,9 @@ namespace RepoLiveControl
                 case "item":
                     BeginSpawn(request, SpawnKind.Item, parts, 500, "safe");
                     return;
+                case "itemeach":
+                    BeginItemEach(request, parts);
+                    return;
                 case "despawn":
                     DespawnEnemies(request, Part(parts, 1, "all"), ParseInt(parts, 2, 0));
                     return;
@@ -254,11 +325,219 @@ namespace RepoLiveControl
                 case "unstick":
                     UnstickLoot(request);
                     return;
+                case "duplicate":
+                    DuplicateLoot(request, Part(parts, 1, "loot"));
+                    return;
+                case "inspect":
+                    InspectLoot(request, Part(parts, 1, "loot"));
+                    return;
                 case "status":
                     ReportStatus(request);
                     return;
                 default:
                     throw new InvalidOperationException("Unknown action '" + action + "'.");
+            }
+        }
+
+        private static void BeginItemEach(ControlRequest request, string[] parts)
+        {
+            string selector = Part(parts, 1, "upgrade");
+            int countPerType = Mathf.Clamp(ParseInt(parts, 2, 1), 1, 50);
+            string placement = Part(parts, 3, "safe").ToLowerInvariant();
+            PlayerAvatar player = RequireLocalPlayer();
+
+            var items = new List<Item>();
+            var typeNames = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Item item in Items.AllItems)
+            {
+                if (item == null || string.IsNullOrWhiteSpace(item.itemName) ||
+                    item.itemName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) < 0 ||
+                    !seen.Add(item.itemName))
+                    continue;
+
+                typeNames.Add(item.itemName);
+                for (int index = 0; index < countPerType; index++)
+                    items.Add(item);
+            }
+
+            if (items.Count == 0)
+                throw new InvalidOperationException("No item types match '" + selector + "'.");
+
+            activeItemBatchJob = new ItemBatchJob(
+                request,
+                items,
+                typeNames,
+                placement,
+                countPerType,
+                player.transform.position);
+            ProcessItemBatchJob(activeItemBatchJob);
+        }
+
+        private static void ProcessItemBatchJob(ItemBatchJob job)
+        {
+            try
+            {
+                int operations = 0;
+                while (!job.Finished && operations < 10)
+                {
+                    Item item = job.Items[job.Spawned];
+                    Vector3 position = GetPlacement(
+                        job.Placement,
+                        job.Anchor,
+                        job.ReservedPositions);
+                    GameObject spawned = Items.SpawnItem(item, position, Quaternion.identity);
+                    if (spawned == null)
+                        throw new InvalidOperationException(
+                            "REPOLib returned no spawned item object for '" + item.itemName + "'.");
+
+                    SpawnedItems.Add(new SpawnedItemRecord
+                    {
+                        Instance = spawned,
+                        Name = item.itemName,
+                        IsWeapon = IsWeaponItem(item)
+                    });
+                    job.Spawned++;
+                    operations++;
+
+                    if (job.Spawned >= job.Items.Count)
+                    {
+                        job.Finished = true;
+                        Complete(job.Request, string.Format(
+                            "OK Spawned {0} item object(s): {1} each of {2} matching type(s): {3}.",
+                            job.Spawned,
+                            job.CountPerType,
+                            job.TypeNames.Count,
+                            string.Join(", ", job.TypeNames.ToArray())));
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                job.Finished = true;
+                Complete(job.Request, string.Format(
+                    "ERROR Item batch stopped after {0}/{1}: {2}",
+                    job.Spawned,
+                    job.Items.Count,
+                    exception.Message));
+            }
+        }
+
+        private static void InspectLoot(ControlRequest request, string target)
+        {
+            if (!target.Equals("loot", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Inspect target must be loot.");
+
+            ValuableDirector director = ValuableDirector.instance;
+            IList tracked = GetField(director, "valuableList") as IList;
+            if (tracked == null)
+                throw new InvalidOperationException("The tracked loot list is unavailable.");
+
+            var trackedNames = new List<string>();
+            foreach (object entry in tracked)
+            {
+                ValuableObject valuable = entry as ValuableObject;
+                if (valuable != null && !trackedNames.Contains(valuable.gameObject.name))
+                    trackedNames.Add(valuable.gameObject.name);
+            }
+
+            var registeredNames = new List<string>();
+            foreach (PrefabRef prefab in Valuables.AllValuables)
+            {
+                if (prefab.Prefab != null)
+                    registeredNames.Add(prefab.Prefab.name);
+            }
+
+            Complete(request,
+                "OK Loot inspection: tracked=[" + string.Join(", ", trackedNames.ToArray()) +
+                "]; registered=[" + string.Join(", ", registeredNames.ToArray()) + "].");
+        }
+
+        private static void DuplicateLoot(ControlRequest request, string target)
+        {
+            if (!target.Equals("loot", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Duplicate target must be loot.");
+
+            ValuableDirector director = ValuableDirector.instance;
+            IList tracked = GetField(director, "valuableList") as IList;
+            if (tracked == null)
+                throw new InvalidOperationException("The tracked loot list is unavailable.");
+
+            var prefabs = new List<PrefabRef>();
+            foreach (object entry in tracked)
+            {
+                ValuableObject valuable = entry as ValuableObject;
+                if (valuable == null)
+                    continue;
+
+                PrefabRef prefab = FindValuablePrefab(valuable);
+                if (prefab == null)
+                    throw new InvalidOperationException(
+                        "No registered valuable prefab matches existing loot '" +
+                        valuable.gameObject.name + "'. No copies were spawned.");
+                prefabs.Add(prefab);
+            }
+
+            if (prefabs.Count == 0)
+            {
+                Complete(request, "OK Duplicated 0 loot object(s); the map had no tracked loot.");
+                return;
+            }
+
+            PlayerAvatar player = RequireLocalPlayer();
+            Shuffle(prefabs);
+            activeDuplicateLootJob = new DuplicateLootJob(request, prefabs, player.transform.position);
+            ProcessDuplicateLootJob(activeDuplicateLootJob);
+        }
+
+        private static void ProcessDuplicateLootJob(DuplicateLootJob job)
+        {
+            try
+            {
+                int operations = 0;
+                while (!job.Finished && operations < 10)
+                {
+                    if (job.Positions.Count < job.Prefabs.Count)
+                    {
+                        Vector3 position;
+                        if (!TryFindClearPosition(job.Anchor, job.Positions, out position))
+                            throw new InvalidOperationException(
+                                "Could not reserve collision-free locations for all copies. " +
+                                "No copies were spawned.");
+                        job.Positions.Add(position);
+                    }
+                    else
+                    {
+                        PrefabRef prefab = job.Prefabs[job.Spawned];
+                        GameObject spawned = Valuables.SpawnValuable(
+                            prefab,
+                            job.Positions[job.Spawned],
+                            Quaternion.identity);
+                        if (spawned == null)
+                            throw new InvalidOperationException(
+                                "REPOLib returned no spawned loot object for '" +
+                                prefab.Prefab.name + "'.");
+                        job.Spawned++;
+
+                        if (job.Spawned >= job.Prefabs.Count)
+                        {
+                            job.Finished = true;
+                            Complete(job.Request, string.Format(
+                                "OK Duplicated {0} loot object(s) into distinct collision-free random locations.",
+                                job.Spawned));
+                        }
+                    }
+                    operations++;
+                }
+            }
+            catch (Exception exception)
+            {
+                job.Finished = true;
+                Complete(job.Request, string.Format(
+                    "ERROR Loot duplication stopped after {0}/{1}: {2}",
+                    job.Spawned,
+                    job.Prefabs.Count,
+                    exception.Message));
             }
         }
 
@@ -396,20 +675,28 @@ namespace RepoLiveControl
 
         private static Vector3 GetPlacement(SpawnJob job)
         {
-            if (job.Placement == "at-player")
-                return job.Anchor + Vector3.up * 1.5f;
+            return GetPlacement(job.Placement, job.Anchor, job.ReservedPositions);
+        }
 
-            if (job.Placement == "near-player")
+        private static Vector3 GetPlacement(
+            string placement,
+            Vector3 anchor,
+            List<Vector3> reservedPositions)
+        {
+            if (placement == "at-player")
+                return anchor + Vector3.up * 1.5f;
+
+            if (placement == "near-player")
             {
                 Vector3 offset = UnityEngine.Random.insideUnitSphere * 3f;
                 offset.y = Math.Abs(offset.y) + 1f;
-                return job.Anchor + offset;
+                return anchor + offset;
             }
 
             Vector3 safe;
-            if (!TryFindClearPosition(job.Anchor, job.ReservedPositions, out safe))
+            if (!TryFindClearPosition(anchor, reservedPositions, out safe))
                 throw new InvalidOperationException("No additional collision-free placement was found.");
-            job.ReservedPositions.Add(safe);
+            reservedPositions.Add(safe);
             return safe;
         }
 
@@ -700,6 +987,77 @@ namespace RepoLiveControl
                     return prefab;
             }
             return null;
+        }
+
+        private static PrefabRef FindValuablePrefab(ValuableObject valuable)
+        {
+            var names = new List<string>();
+            AddObjectName(names, valuable.gameObject.name);
+            AddObjectName(names, valuable.transform.root.gameObject.name);
+            PhysGrabObject phys = valuable.GetComponent<PhysGrabObject>() ??
+                valuable.GetComponentInParent<PhysGrabObject>();
+            if (phys != null)
+                AddObjectName(names, phys.gameObject.name);
+
+            foreach (PrefabRef prefab in Valuables.AllValuables)
+            {
+                if (prefab.Prefab == null)
+                    continue;
+                string prefabName = NormalizeObjectName(prefab.Prefab.name);
+                foreach (string name in names)
+                {
+                    if (prefabName.Equals(name, StringComparison.OrdinalIgnoreCase))
+                        return prefab;
+                }
+            }
+
+            PrefabRef best = null;
+            int bestLength = 0;
+            foreach (PrefabRef prefab in Valuables.AllValuables)
+            {
+                if (prefab.Prefab == null)
+                    continue;
+                string prefabName = NormalizeObjectName(prefab.Prefab.name);
+                foreach (string name in names)
+                {
+                    int matchLength = Math.Min(name.Length, prefabName.Length);
+                    if ((name.StartsWith(prefabName, StringComparison.OrdinalIgnoreCase) ||
+                         prefabName.StartsWith(name, StringComparison.OrdinalIgnoreCase)) &&
+                        matchLength > bestLength)
+                    {
+                        best = prefab;
+                        bestLength = matchLength;
+                    }
+                }
+            }
+            return best;
+        }
+
+        private static void AddObjectName(List<string> names, string name)
+        {
+            string normalized = NormalizeObjectName(name);
+            if (normalized.Length > 0 && !names.Contains(normalized))
+                names.Add(normalized);
+        }
+
+        private static string NormalizeObjectName(string name)
+        {
+            string normalized = (name ?? string.Empty).Trim();
+            const string cloneSuffix = "(Clone)";
+            while (normalized.EndsWith(cloneSuffix, StringComparison.OrdinalIgnoreCase))
+                normalized = normalized.Substring(0, normalized.Length - cloneSuffix.Length).Trim();
+            return normalized;
+        }
+
+        private static void Shuffle<T>(List<T> values)
+        {
+            for (int index = values.Count - 1; index > 0; index--)
+            {
+                int other = UnityEngine.Random.Range(0, index + 1);
+                T value = values[index];
+                values[index] = values[other];
+                values[other] = value;
+            }
         }
 
         private static Item FindItem(string selector)
