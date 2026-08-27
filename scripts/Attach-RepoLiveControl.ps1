@@ -35,14 +35,14 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$built = Join-Path $repoRoot "src\RepoLiveControl\bin\Release\netstandard2.1\RepoLiveControlV8.dll"
-$pluginDir = Join-Path $ProfilePath "BepInEx\plugins\Codex-RepoLiveControl"
+$built = Join-Path $repoRoot "src\RepoLiveControl\bin\Release\netstandard2.1\RepoCommandConsole.dll"
+$pluginDir = Join-Path $ProfilePath "BepInEx\plugins\JamesKieley-RepoCommandConsole"
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
-$installed = Join-Path $pluginDir "RepoLiveControlV8.dll"
+$installed = Join-Path $pluginDir "RepoCommandConsole.dll"
 Copy-Item -LiteralPath $built -Destination $installed -Force
 
 if ($InstallOnly) {
-    Write-Output "Installed RepoLiveControlV8.dll for the next game launch."
+    Write-Output "Installed RepoCommandConsole.dll for the next game launch. Restart R.E.P.O. to load the UI."
     exit 0
 }
 if (-not $process) {
@@ -63,4 +63,4 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-Write-Output "RepoLiveControl is installed and attached to the running game."
+Write-Output "The RepoCommandConsole bridge is installed and attached. Restart R.E.P.O. to load the in-game UI."

@@ -7,10 +7,13 @@ Invoke `scripts/invoke.ps1` with these parameters.
 | Spawn named enemy | `enemy` | enemy substring | exact requested objects | `near-player` |
 | Spawn high-level enemy | `enemy` | `high` or `randomhigh` | requested | `near-player` |
 | Spawn random loot | `loot` | `random` | requested | `safe` |
+| Spawn medium-value loot | `loot` | `medium` | requested | `safe` |
 | Spawn expensive loot | `loot` | `expensive` | requested | `safe` |
 | Spawn named loot | `loot` | prefab-name substring | requested | `safe` |
 | Spawn specific item | `item` | item-name substring | requested | `safe` |
+| Spawn a C.A.R.T. | `cart` | `medium`, `small`, or `pocket` | requested | requested placement |
 | Spawn each matching item type | `itemeach` | item-name substring | requested per type | requested placement |
+| Spawn an even spread of matching item types | `itemspread` | item-name substring | exact total, balanced across types | requested placement |
 | Spawn random weapons | `item` | `weapon` | requested | requested placement |
 | Spawn at the user | `loot` or `item` | requested selector | requested | `at-player` |
 | Despawn all enemies | `despawn` | `all` | `0` (keep count) | unused |
@@ -31,7 +34,9 @@ scripts/invoke.ps1 despawnitem weapon
 scripts/invoke.ps1 loot expensive 20 safe
 scripts/invoke.ps1 item strength 100 at-player
 scripts/invoke.ps1 item weapon 100 at-player
+scripts/invoke.ps1 cart medium 1 at-player
 scripts/invoke.ps1 itemeach upgrade 3 at-player
+scripts/invoke.ps1 itemspread upgrade 100 at-player
 scripts/invoke.ps1 auto off
 scripts/invoke.ps1 unstick
 scripts/invoke.ps1 duplicate loot

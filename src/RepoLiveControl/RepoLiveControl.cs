@@ -6,19 +6,58 @@ using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 using BepInEx;
+using BepInEx.Logging;
 using HarmonyLib;
 using Photon.Pun;
 using REPOLib.Modules;
+using RepoLiveControl.Runtime;
 using UnityEngine;
 
 namespace RepoLiveControl
 {
-    [BepInPlugin("Codex.REPO.LiveControl.V8", "Codex REPO Live Control", "1.4.0")]
+    [BepInPlugin("com.jameskieley.repo.commandconsole", "REPO Command Console", "2.0.0")]
+    [BepInDependency("REPOLib", BepInDependency.DependencyFlags.HardDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
+        internal const string PluginGuid = "com.jameskieley.repo.commandconsole";
+        internal const string PluginName = "REPO Command Console";
+        internal const string PluginVersion = "2.0.0";
+
+        internal static Plugin Instance { get; private set; }
+        internal static ManualLogSource Log { get; private set; }
+        internal CommandConsoleRuntime CommandConsole { get { return commandConsole; } }
+
+        private CommandConsoleRuntime commandConsole;
+
         private void Awake()
         {
+            Instance = this;
+            Log = Logger;
             Bridge.Start();
+            commandConsole = new CommandConsoleRuntime(this);
+            Logger.LogInfo(
+                PluginName + " " + PluginVersion +
+                " loaded. Press " + commandConsole.ToggleKeyLabel + " to open the command console.");
+        }
+
+        private void Update()
+        {
+            if (commandConsole != null)
+                commandConsole.Update();
+        }
+
+        private void OnGUI()
+        {
+            if (commandConsole != null)
+                commandConsole.OnGUI();
+        }
+
+        private void OnDestroy()
+        {
+            if (commandConsole != null)
+                commandConsole.Dispose();
+            commandConsole = null;
+            Instance = null;
         }
     }
 
@@ -33,26 +72,61 @@ namespace RepoLiveControl
     internal sealed class ControlRequest
     {
         internal readonly string Command;
+        internal readonly CommandRequestSource Source;
+        internal readonly int RequesterActorNumber;
+        internal readonly Action<string> CompletionCallback;
         internal readonly ManualResetEventSlim Completed = new ManualResetEventSlim(false);
         internal string Result = "ERROR No result was produced.";
 
         internal ControlRequest(string command)
+            : this(command, CommandRequestSource.NamedPipe, -1, null)
+        {
+        }
+
+        internal ControlRequest(
+            string command,
+            CommandRequestSource source,
+            int requesterActorNumber,
+            Action<string> completionCallback)
         {
             Command = command;
+            Source = source;
+            RequesterActorNumber = requesterActorNumber;
+            CompletionCallback = completionCallback;
         }
 
         internal void Complete(string result)
         {
             Result = result;
             Completed.Set();
+            if (CompletionCallback != null)
+            {
+                try
+                {
+                    CompletionCallback(result);
+                }
+                catch (Exception exception)
+                {
+                    if (Plugin.Log != null)
+                        Plugin.Log.LogError("Command completion callback failed: " + exception);
+                }
+            }
         }
+    }
+
+    internal enum CommandRequestSource
+    {
+        NamedPipe,
+        LocalConsole,
+        RemoteClient
     }
 
     internal enum SpawnKind
     {
         Enemy,
         Loot,
-        Item
+        Item,
+        Cart
     }
 
     internal sealed class SpawnJob
@@ -85,10 +159,11 @@ namespace RepoLiveControl
         }
     }
 
-    internal sealed class SpawnedItemRecord
+    internal sealed class SpawnedObjectRecord
     {
         internal GameObject Instance;
         internal string Name;
+        internal SpawnKind Kind;
         internal bool IsWeapon;
     }
 
@@ -138,12 +213,42 @@ namespace RepoLiveControl
         }
     }
 
+    internal sealed class BalancedItemJob
+    {
+        internal readonly ControlRequest Request;
+        internal readonly List<Item> Items;
+        internal readonly List<string> TypeNames;
+        internal readonly Dictionary<string, int> TypeCounts;
+        internal readonly string Placement;
+        internal readonly Vector3 Anchor;
+        internal readonly List<Vector3> ReservedPositions = new List<Vector3>();
+        internal int Spawned;
+        internal bool Finished;
+
+        internal BalancedItemJob(
+            ControlRequest request,
+            List<Item> items,
+            List<string> typeNames,
+            Dictionary<string, int> typeCounts,
+            string placement,
+            Vector3 anchor)
+        {
+            Request = request;
+            Items = items;
+            TypeNames = typeNames;
+            TypeCounts = typeCounts;
+            Placement = placement;
+            Anchor = anchor;
+        }
+    }
+
     internal static class Bridge
     {
-        internal const string PipeName = "CodexRepoLiveControlV8";
-        private const string HarmonyId = "Codex.REPO.LiveControl.V8";
+        internal const string PipeName = "CodexRepoCommandConsoleV2";
+        private const string HarmonyId = "com.jameskieley.repo.commandconsole.harmony";
         private static readonly ConcurrentQueue<ControlRequest> Requests = new ConcurrentQueue<ControlRequest>();
-        private static readonly List<SpawnedItemRecord> SpawnedItems = new List<SpawnedItemRecord>();
+        private static readonly List<SpawnedObjectRecord> SpawnedObjects =
+            new List<SpawnedObjectRecord>();
         private static readonly string[] ExpensiveLootNames =
         {
             "Diamond Display",
@@ -164,6 +269,7 @@ namespace RepoLiveControl
         private static SpawnJob activeJob;
         private static DuplicateLootJob activeDuplicateLootJob;
         private static ItemBatchJob activeItemBatchJob;
+        private static BalancedItemJob activeBalancedItemJob;
 
         internal static void Start()
         {
@@ -180,6 +286,13 @@ namespace RepoLiveControl
             Harmony.UnpatchID("Codex.REPO.LiveControl.V5");
             Harmony.UnpatchID("Codex.REPO.LiveControl.V6");
             Harmony.UnpatchID("Codex.REPO.LiveControl.V7");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V8");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V9");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V10");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V11");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V12");
+            Harmony.UnpatchID("Codex.REPO.LiveControl.V13");
+            Harmony.UnpatchID(HarmonyId);
             new Harmony(HarmonyId).PatchAll(typeof(Bridge).Assembly);
 
             var serverThread = new Thread(ListenForRequests)
@@ -188,6 +301,13 @@ namespace RepoLiveControl
                 Name = "Codex REPO Live Control"
             };
             serverThread.Start();
+        }
+
+        internal static void Enqueue(ControlRequest request)
+        {
+            if (request == null)
+                throw new ArgumentNullException("request");
+            Requests.Enqueue(request);
         }
 
         private static void ListenForRequests()
@@ -253,6 +373,17 @@ namespace RepoLiveControl
 
         internal static void ProcessFrame()
         {
+            if (AbortActiveJobsIfAuthorityLost())
+                return;
+
+            if (activeBalancedItemJob != null)
+            {
+                ProcessBalancedItemJob(activeBalancedItemJob);
+                if (activeBalancedItemJob.Finished)
+                    activeBalancedItemJob = null;
+                return;
+            }
+
             if (activeItemBatchJob != null)
             {
                 ProcessItemBatchJob(activeItemBatchJob);
@@ -283,7 +414,7 @@ namespace RepoLiveControl
 
             try
             {
-                if (!PhotonNetwork.IsMasterClient)
+                if (PhotonNetwork.InRoom && !PhotonNetwork.IsMasterClient)
                     throw new InvalidOperationException("This client is not the lobby host.");
 
                 Dispatch(request);
@@ -294,9 +425,85 @@ namespace RepoLiveControl
             }
         }
 
+        private static bool AbortActiveJobsIfAuthorityLost()
+        {
+            if (!PhotonNetwork.InRoom || PhotonNetwork.IsMasterClient)
+                return false;
+
+            bool aborted = false;
+            if (activeBalancedItemJob != null)
+            {
+                if (!activeBalancedItemJob.Finished)
+                {
+                    activeBalancedItemJob.Finished = true;
+                    activeBalancedItemJob.ReservedPositions.Clear();
+                    Complete(activeBalancedItemJob.Request, string.Format(
+                        "ERROR Host authority was lost; balanced item spread stopped after {0}/{1}.",
+                        activeBalancedItemJob.Spawned,
+                        activeBalancedItemJob.Items.Count));
+                    aborted = true;
+                }
+                activeBalancedItemJob = null;
+            }
+
+            if (activeItemBatchJob != null)
+            {
+                if (!activeItemBatchJob.Finished)
+                {
+                    activeItemBatchJob.Finished = true;
+                    activeItemBatchJob.ReservedPositions.Clear();
+                    Complete(activeItemBatchJob.Request, string.Format(
+                        "ERROR Host authority was lost; item batch stopped after {0}/{1}.",
+                        activeItemBatchJob.Spawned,
+                        activeItemBatchJob.Items.Count));
+                    aborted = true;
+                }
+                activeItemBatchJob = null;
+            }
+
+            if (activeDuplicateLootJob != null)
+            {
+                if (!activeDuplicateLootJob.Finished)
+                {
+                    activeDuplicateLootJob.Finished = true;
+                    activeDuplicateLootJob.Positions.Clear();
+                    Complete(activeDuplicateLootJob.Request, string.Format(
+                        "ERROR Host authority was lost; loot duplication stopped after {0}/{1}.",
+                        activeDuplicateLootJob.Spawned,
+                        activeDuplicateLootJob.Prefabs.Count));
+                    aborted = true;
+                }
+                activeDuplicateLootJob = null;
+            }
+
+            if (activeJob != null)
+            {
+                if (!activeJob.Finished)
+                {
+                    activeJob.Finished = true;
+                    activeJob.ReservedPositions.Clear();
+                    Complete(activeJob.Request, string.Format(
+                        "ERROR Host authority was lost; spawn stopped after {0}/{1}.",
+                        activeJob.Spawned,
+                        activeJob.Requested));
+                    aborted = true;
+                }
+                activeJob = null;
+            }
+
+            return aborted;
+        }
+
         private static void Dispatch(ControlRequest request)
         {
-            string[] parts = request.Command.Split('|');
+            string command = request.Command;
+            if (command.StartsWith("/", StringComparison.Ordinal))
+            {
+                if (!SlashCommandRuntime.TryTranslateOrComplete(request, command, out command))
+                    return;
+            }
+
+            string[] parts = command.Split('|');
             string action = Part(parts, 0, string.Empty).ToLowerInvariant();
 
             switch (action)
@@ -310,14 +517,27 @@ namespace RepoLiveControl
                 case "item":
                     BeginSpawn(request, SpawnKind.Item, parts, 500, "safe");
                     return;
+                case "cart":
+                    BeginSpawn(request, SpawnKind.Cart, parts, 20, "at-player");
+                    return;
                 case "itemeach":
                     BeginItemEach(request, parts);
+                    return;
+                case "itemspread":
+                    BeginBalancedItems(request, parts);
                     return;
                 case "despawn":
                     DespawnEnemies(request, Part(parts, 1, "all"), ParseInt(parts, 2, 0));
                     return;
                 case "despawnitem":
                     DespawnItems(request, Part(parts, 1, "all"));
+                    return;
+                case "despawnspawned":
+                    DespawnSpawnedObjects(
+                        request,
+                        Part(parts, 1, "all"),
+                        Part(parts, 2, "all"),
+                        ParseInt(parts, 3, -1));
                     return;
                 case "auto":
                     SetAutomaticEnemies(request, Part(parts, 1, "on"));
@@ -327,6 +547,9 @@ namespace RepoLiveControl
                     return;
                 case "duplicate":
                     DuplicateLoot(request, Part(parts, 1, "loot"));
+                    return;
+                case "topup3":
+                    TopUpLootAfterOneDuplicate(request, Part(parts, 1, "loot"));
                     return;
                 case "inspect":
                     InspectLoot(request, Part(parts, 1, "loot"));
@@ -344,7 +567,7 @@ namespace RepoLiveControl
             string selector = Part(parts, 1, "upgrade");
             int countPerType = Mathf.Clamp(ParseInt(parts, 2, 1), 1, 50);
             string placement = Part(parts, 3, "safe").ToLowerInvariant();
-            PlayerAvatar player = RequireLocalPlayer();
+            PlayerAvatar player = RequireRequestPlayer(request);
 
             var items = new List<Item>();
             var typeNames = new List<string>();
@@ -374,6 +597,58 @@ namespace RepoLiveControl
             ProcessItemBatchJob(activeItemBatchJob);
         }
 
+        private static void BeginBalancedItems(ControlRequest request, string[] parts)
+        {
+            string selector = Part(parts, 1, "upgrade");
+            int requested = Mathf.Clamp(ParseInt(parts, 2, 1), 1, 500);
+            string placement = Part(parts, 3, "safe").ToLowerInvariant();
+            PlayerAvatar player = RequireRequestPlayer(request);
+
+            var candidates = new List<Item>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bool weaponsOnly = selector.Equals("weapon", StringComparison.OrdinalIgnoreCase) ||
+                               selector.Equals("weapons", StringComparison.OrdinalIgnoreCase);
+            foreach (Item item in Items.AllItems)
+            {
+                if (item == null || string.IsNullOrWhiteSpace(item.itemName))
+                    continue;
+
+                bool matches = weaponsOnly
+                    ? IsWeaponItem(item)
+                    : item.itemName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0;
+                if (!matches || !seen.Add(item.itemName))
+                    continue;
+                candidates.Add(item);
+            }
+
+            if (candidates.Count == 0)
+                throw new InvalidOperationException("No item types match '" + selector + "'.");
+
+            Shuffle(candidates);
+            var items = new List<Item>(requested);
+            var typeNames = new List<string>();
+            var typeCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < requested; index++)
+            {
+                Item item = candidates[index % candidates.Count];
+                items.Add(item);
+                if (!typeCounts.ContainsKey(item.itemName))
+                    typeNames.Add(item.itemName);
+                typeCounts[item.itemName] = typeCounts.ContainsKey(item.itemName)
+                    ? typeCounts[item.itemName] + 1
+                    : 1;
+            }
+
+            activeBalancedItemJob = new BalancedItemJob(
+                request,
+                items,
+                typeNames,
+                typeCounts,
+                placement,
+                player.transform.position);
+            ProcessBalancedItemJob(activeBalancedItemJob);
+        }
+
         private static void ProcessItemBatchJob(ItemBatchJob job)
         {
             try
@@ -391,10 +666,11 @@ namespace RepoLiveControl
                         throw new InvalidOperationException(
                             "REPOLib returned no spawned item object for '" + item.itemName + "'.");
 
-                    SpawnedItems.Add(new SpawnedItemRecord
+                    SpawnedObjects.Add(new SpawnedObjectRecord
                     {
                         Instance = spawned,
                         Name = item.itemName,
+                        Kind = SpawnKind.Item,
                         IsWeapon = IsWeaponItem(item)
                     });
                     job.Spawned++;
@@ -417,6 +693,58 @@ namespace RepoLiveControl
                 job.Finished = true;
                 Complete(job.Request, string.Format(
                     "ERROR Item batch stopped after {0}/{1}: {2}",
+                    job.Spawned,
+                    job.Items.Count,
+                    exception.Message));
+            }
+        }
+
+        private static void ProcessBalancedItemJob(BalancedItemJob job)
+        {
+            try
+            {
+                int operations = 0;
+                while (!job.Finished && operations < 10)
+                {
+                    Item item = job.Items[job.Spawned];
+                    Vector3 position = GetPlacement(
+                        job.Placement,
+                        job.Anchor,
+                        job.ReservedPositions);
+                    GameObject spawned = Items.SpawnItem(item, position, Quaternion.identity);
+                    if (spawned == null)
+                        throw new InvalidOperationException(
+                            "REPOLib returned no spawned item object for '" + item.itemName + "'.");
+
+                    SpawnedObjects.Add(new SpawnedObjectRecord
+                    {
+                        Instance = spawned,
+                        Name = item.itemName,
+                        Kind = SpawnKind.Item,
+                        IsWeapon = IsWeaponItem(item)
+                    });
+                    job.Spawned++;
+                    operations++;
+
+                    if (job.Spawned >= job.Items.Count)
+                    {
+                        job.Finished = true;
+                        var summary = new List<string>();
+                        foreach (string typeName in job.TypeNames)
+                            summary.Add(typeName + " x" + job.TypeCounts[typeName]);
+                        Complete(job.Request, string.Format(
+                            "OK Spawned {0} balanced item object(s) across {1} type(s): {2}.",
+                            job.Spawned,
+                            job.TypeNames.Count,
+                            string.Join(", ", summary.ToArray())));
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                job.Finished = true;
+                Complete(job.Request, string.Format(
+                    "ERROR Balanced item spread stopped after {0}/{1}: {2}",
                     job.Spawned,
                     job.Items.Count,
                     exception.Message));
@@ -484,7 +812,72 @@ namespace RepoLiveControl
                 return;
             }
 
-            PlayerAvatar player = RequireLocalPlayer();
+            PlayerAvatar player = RequireRequestPlayer(request);
+            Shuffle(prefabs);
+            activeDuplicateLootJob = new DuplicateLootJob(request, prefabs, player.transform.position);
+            ProcessDuplicateLootJob(activeDuplicateLootJob);
+        }
+
+        private static void TopUpLootAfterOneDuplicate(ControlRequest request, string target)
+        {
+            if (!target.Equals("loot", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Top-up target must be loot.");
+
+            ValuableDirector director = ValuableDirector.instance;
+            IList tracked = GetField(director, "valuableList") as IList;
+            if (tracked == null)
+                throw new InvalidOperationException("The tracked loot list is unavailable.");
+
+            var groupedPrefabs = new List<PrefabRef>();
+            var groupedCounts = new List<int>();
+            foreach (object entry in tracked)
+            {
+                ValuableObject valuable = entry as ValuableObject;
+                if (valuable == null)
+                    continue;
+
+                PrefabRef prefab = FindValuablePrefab(valuable);
+                if (prefab == null)
+                    throw new InvalidOperationException(
+                        "No registered valuable prefab matches existing loot '" +
+                        valuable.gameObject.name + "'. No copies were spawned.");
+
+                int groupIndex = -1;
+                for (int index = 0; index < groupedPrefabs.Count; index++)
+                {
+                    if (object.ReferenceEquals(groupedPrefabs[index], prefab))
+                    {
+                        groupIndex = index;
+                        break;
+                    }
+                }
+
+                if (groupIndex < 0)
+                {
+                    groupedPrefabs.Add(prefab);
+                    groupedCounts.Add(1);
+                }
+                else
+                {
+                    groupedCounts[groupIndex]++;
+                }
+            }
+
+            var prefabs = new List<PrefabRef>();
+            for (int index = 0; index < groupedPrefabs.Count; index++)
+            {
+                int copies = groupedCounts[index] / 2;
+                for (int copy = 0; copy < copies; copy++)
+                    prefabs.Add(groupedPrefabs[index]);
+            }
+
+            if (prefabs.Count == 0)
+            {
+                Complete(request, "OK Added 0 loot object(s); no complete duplicated pairs were found.");
+                return;
+            }
+
+            PlayerAvatar player = RequireRequestPlayer(request);
             Shuffle(prefabs);
             activeDuplicateLootJob = new DuplicateLootJob(request, prefabs, player.transform.position);
             ProcessDuplicateLootJob(activeDuplicateLootJob);
@@ -517,6 +910,13 @@ namespace RepoLiveControl
                             throw new InvalidOperationException(
                                 "REPOLib returned no spawned loot object for '" +
                                 prefab.Prefab.name + "'.");
+                        SpawnedObjects.Add(new SpawnedObjectRecord
+                        {
+                            Instance = spawned,
+                            Name = prefab.Prefab.name,
+                            Kind = SpawnKind.Loot,
+                            IsWeapon = false
+                        });
                         job.Spawned++;
 
                         if (job.Spawned >= job.Prefabs.Count)
@@ -548,7 +948,7 @@ namespace RepoLiveControl
             int maximum,
             string defaultPlacement)
         {
-            PlayerAvatar player = RequireLocalPlayer();
+            PlayerAvatar player = RequireRequestPlayer(request);
             string selector = Part(parts, 1, "random");
             int count = Mathf.Clamp(ParseInt(parts, 2, 1), 1, maximum);
             string placement = Part(parts, 3, defaultPlacement).ToLowerInvariant();
@@ -579,6 +979,9 @@ namespace RepoLiveControl
                             break;
                         case SpawnKind.Item:
                             SpawnItemStep(job);
+                            break;
+                        case SpawnKind.Cart:
+                            SpawnCartStep(job);
                             break;
                     }
 
@@ -612,9 +1015,21 @@ namespace RepoLiveControl
             if (setup == null)
                 throw new InvalidOperationException("No enemy matches '" + job.Selector + "'.");
 
-            Vector3 offset = UnityEngine.Random.insideUnitSphere * 4f;
-            offset.y = 0f;
-            Vector3 position = SemiFunc.EnemyRoamFindPoint(job.Anchor + offset);
+            Vector3 position;
+            if (job.Placement == "safe")
+            {
+                position = SemiFunc.EnemyRoamFindPoint(GetPlacement(job));
+            }
+            else if (job.Placement == "at-player")
+            {
+                position = SemiFunc.EnemyRoamFindPoint(job.Anchor);
+            }
+            else
+            {
+                Vector3 offset = UnityEngine.Random.insideUnitSphere * 4f;
+                offset.y = 0f;
+                position = SemiFunc.EnemyRoamFindPoint(job.Anchor + offset);
+            }
             List<EnemyParent> spawned = Enemies.SpawnEnemy(setup, position, Quaternion.identity, false);
             if (spawned == null || spawned.Count == 0)
                 throw new InvalidOperationException("The enemy setup spawned no objects.");
@@ -633,7 +1048,21 @@ namespace RepoLiveControl
             }
 
             EnemyParent parent = GetEnemyParent(setup);
-            AppendName(job, parent == null ? "unknown" : parent.enemyName, accepted);
+            string enemyName = parent == null ? "unknown" : parent.enemyName;
+            for (int index = 0; index < accepted; index++)
+            {
+                EnemyParent acceptedEnemy = spawned[index];
+                if (acceptedEnemy == null)
+                    continue;
+                SpawnedObjects.Add(new SpawnedObjectRecord
+                {
+                    Instance = acceptedEnemy.gameObject,
+                    Name = enemyName,
+                    Kind = SpawnKind.Enemy,
+                    IsWeapon = false
+                });
+            }
+            AppendName(job, enemyName, accepted);
             job.Spawned += accepted;
         }
 
@@ -648,6 +1077,13 @@ namespace RepoLiveControl
             if (spawned == null)
                 throw new InvalidOperationException("REPOLib returned no spawned loot object.");
 
+            SpawnedObjects.Add(new SpawnedObjectRecord
+            {
+                Instance = spawned,
+                Name = prefab.Prefab.name,
+                Kind = SpawnKind.Loot,
+                IsWeapon = false
+            });
             AppendName(job, prefab.Prefab.name, 1);
             job.Spawned++;
         }
@@ -663,13 +1099,41 @@ namespace RepoLiveControl
             if (spawned == null)
                 throw new InvalidOperationException("REPOLib returned no spawned item object.");
 
-            SpawnedItems.Add(new SpawnedItemRecord
+            SpawnedObjects.Add(new SpawnedObjectRecord
             {
                 Instance = spawned,
                 Name = item.itemName,
+                Kind = SpawnKind.Item,
                 IsWeapon = IsWeaponItem(item)
             });
             AppendName(job, item.itemName, 1);
+            job.Spawned++;
+        }
+
+        private static void SpawnCartStep(SpawnJob job)
+        {
+            string itemName = FindCartItemName(job.Selector);
+            if (itemName == null)
+                throw new InvalidOperationException("No cart item matches '" + job.Selector + "'.");
+
+            Vector3 position = GetPlacement(job);
+            GameObject spawned = PhotonNetwork.InstantiateRoomObject(
+                "Items/" + itemName,
+                position,
+                Quaternion.identity,
+                0);
+            if (spawned == null)
+                throw new InvalidOperationException(
+                    "Photon could not spawn the cart item '" + itemName + "'.");
+
+            SpawnedObjects.Add(new SpawnedObjectRecord
+            {
+                Instance = spawned,
+                Name = itemName,
+                Kind = SpawnKind.Cart,
+                IsWeapon = false
+            });
+            AppendName(job, itemName, 1);
             job.Spawned++;
         }
 
@@ -804,23 +1268,24 @@ namespace RepoLiveControl
             bool weaponsOnly = selector.Equals("weapon", StringComparison.OrdinalIgnoreCase) ||
                                selector.Equals("weapons", StringComparison.OrdinalIgnoreCase);
             int destroyed = 0;
-            for (int index = SpawnedItems.Count - 1; index >= 0; index--)
+            for (int index = SpawnedObjects.Count - 1; index >= 0; index--)
             {
-                SpawnedItemRecord item = SpawnedItems[index];
+                SpawnedObjectRecord item = SpawnedObjects[index];
                 if (item.Instance == null)
                 {
-                    SpawnedItems.RemoveAt(index);
+                    SpawnedObjects.RemoveAt(index);
                     continue;
                 }
 
-                bool matches = weaponsOnly ? item.IsWeapon :
+                bool itemKind = item.Kind == SpawnKind.Item || item.Kind == SpawnKind.Cart;
+                bool matches = itemKind && (weaponsOnly ? item.IsWeapon :
                     selector.Equals("all", StringComparison.OrdinalIgnoreCase) ||
-                    item.Name.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0;
+                    item.Name.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0);
                 if (!matches)
                     continue;
 
-                PhotonNetwork.Destroy(item.Instance);
-                SpawnedItems.RemoveAt(index);
+                DestroySpawnedObject(item);
+                SpawnedObjects.RemoveAt(index);
                 destroyed++;
             }
 
@@ -828,6 +1293,97 @@ namespace RepoLiveControl
                 "OK Despawned {0} matching bridge-spawned item object(s) for '{1}'.",
                 destroyed,
                 selector));
+        }
+
+        private static void DespawnSpawnedObjects(
+            ControlRequest request,
+            string kindText,
+            string selector,
+            int requested)
+        {
+            SpawnKind? requestedKind = ParseSpawnKind(kindText);
+            if (!requestedKind.HasValue && !kindText.Equals("all", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Unknown spawned-object kind '" + kindText + "'.");
+
+            int maximum = requested < 0 ? int.MaxValue : Mathf.Clamp(requested, 1, 500);
+            int destroyed = 0;
+            for (int index = SpawnedObjects.Count - 1;
+                 index >= 0 && destroyed < maximum;
+                 index--)
+            {
+                SpawnedObjectRecord record = SpawnedObjects[index];
+                if (record.Instance == null)
+                {
+                    SpawnedObjects.RemoveAt(index);
+                    continue;
+                }
+
+                bool kindMatches = !requestedKind.HasValue || record.Kind == requestedKind.Value ||
+                    (requestedKind.Value == SpawnKind.Item && record.Kind == SpawnKind.Cart);
+                bool nameMatches = selector.Equals("all", StringComparison.OrdinalIgnoreCase) ||
+                    record.Name.Equals(selector, StringComparison.OrdinalIgnoreCase);
+                if (!kindMatches || !nameMatches)
+                    continue;
+
+                DestroySpawnedObject(record);
+                SpawnedObjects.RemoveAt(index);
+                destroyed++;
+            }
+
+            Complete(request, string.Format(
+                "OK Despawned {0} matching mod-spawned {1} object(s) for '{2}'.",
+                destroyed,
+                kindText,
+                selector));
+        }
+
+        private static SpawnKind? ParseSpawnKind(string value)
+        {
+            if (value.Equals("enemy", StringComparison.OrdinalIgnoreCase))
+                return SpawnKind.Enemy;
+            if (value.Equals("valuable", StringComparison.OrdinalIgnoreCase) ||
+                value.Equals("loot", StringComparison.OrdinalIgnoreCase))
+                return SpawnKind.Loot;
+            if (value.Equals("item", StringComparison.OrdinalIgnoreCase))
+                return SpawnKind.Item;
+            if (value.Equals("cart", StringComparison.OrdinalIgnoreCase))
+                return SpawnKind.Cart;
+            return null;
+        }
+
+        private static void DestroySpawnedObject(SpawnedObjectRecord record)
+        {
+            if (record == null || record.Instance == null)
+                return;
+
+            if (record.Kind == SpawnKind.Enemy && EnemyDirector.instance != null)
+            {
+                EnemyParent enemy = record.Instance.GetComponent<EnemyParent>() ??
+                    record.Instance.GetComponentInChildren<EnemyParent>();
+                if (enemy != null)
+                    EnemyDirector.instance.enemiesSpawned.Remove(enemy);
+            }
+            else if (record.Kind == SpawnKind.Loot && ValuableDirector.instance != null)
+            {
+                IList tracked = GetField(ValuableDirector.instance, "valuableList") as IList;
+                ValuableObject valuable = record.Instance.GetComponent<ValuableObject>() ??
+                    record.Instance.GetComponentInChildren<ValuableObject>();
+                if (tracked != null && valuable != null)
+                    tracked.Remove(valuable);
+            }
+            else if ((record.Kind == SpawnKind.Item || record.Kind == SpawnKind.Cart) &&
+                     ItemManager.instance != null)
+            {
+                ItemAttributes attributes = record.Instance.GetComponent<ItemAttributes>() ??
+                    record.Instance.GetComponentInChildren<ItemAttributes>();
+                if (attributes != null)
+                    ItemManager.instance.spawnedItems.Remove(attributes);
+            }
+
+            if (PhotonNetwork.InRoom)
+                PhotonNetwork.Destroy(record.Instance);
+            else
+                UnityEngine.Object.Destroy(record.Instance);
         }
 
         private static void SetAutomaticEnemies(ControlRequest request, string setting)
@@ -853,7 +1409,7 @@ namespace RepoLiveControl
         private static void UnstickLoot(ControlRequest request)
         {
             ValuableDirector director = ValuableDirector.instance;
-            PlayerAvatar player = RequireLocalPlayer();
+            PlayerAvatar player = RequireRequestPlayer(request);
             IList tracked = GetField(director, "valuableList") as IList;
             if (tracked == null)
                 throw new InvalidOperationException("The tracked loot list is unavailable.");
@@ -950,6 +1506,7 @@ namespace RepoLiveControl
                 selector.Equals("randomhigh", StringComparison.OrdinalIgnoreCase);
             bool high = randomHigh || selector.Equals("high", StringComparison.OrdinalIgnoreCase);
             EnemySetup selected = null;
+            EnemySetup partial = null;
             int matches = 0;
 
             foreach (EnemySetup candidate in Enemies.AllEnemies)
@@ -957,8 +1514,14 @@ namespace RepoLiveControl
                 EnemyParent parent = GetEnemyParent(candidate);
                 if (parent == null)
                     continue;
-                if (!high && parent.enemyName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)
-                    return candidate;
+                if (!high)
+                {
+                    if (parent.enemyName.Equals(selector, StringComparison.OrdinalIgnoreCase))
+                        return candidate;
+                    if (partial == null &&
+                        parent.enemyName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)
+                        partial = candidate;
+                }
                 if (high && parent.difficulty == EnemyParent.Difficulty.Difficulty3)
                 {
                     if (!randomHigh && parent.enemyName.IndexOf("Reaper", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -968,7 +1531,7 @@ namespace RepoLiveControl
                         selected = candidate;
                 }
             }
-            return selected;
+            return high ? selected : partial;
         }
 
         private static PrefabRef FindValuable(string selector, int index)
@@ -976,17 +1539,44 @@ namespace RepoLiveControl
             if (selector.Equals("expensive", StringComparison.OrdinalIgnoreCase))
                 selector = ExpensiveLootNames[index % ExpensiveLootNames.Length];
 
+            if (selector.Equals("medium", StringComparison.OrdinalIgnoreCase))
+            {
+                IList mediumPool = GetField(ValuableDirector.instance, "mediumValuables") as IList;
+                if (mediumPool != null)
+                {
+                    var candidates = new List<PrefabRef>();
+                    foreach (object entry in mediumPool)
+                    {
+                        PrefabRef prefab = entry as PrefabRef;
+                        if (prefab != null && prefab.Prefab != null)
+                            candidates.Add(prefab);
+                    }
+
+                    if (candidates.Count > 0)
+                        return candidates[UnityEngine.Random.Range(0, candidates.Count)];
+                }
+
+                return null;
+            }
+
             var prefabs = Valuables.AllValuables;
             if (selector.Equals("random", StringComparison.OrdinalIgnoreCase))
                 return prefabs.Count == 0 ? null : prefabs[UnityEngine.Random.Range(0, prefabs.Count)];
 
+            PrefabRef partial = null;
             foreach (PrefabRef prefab in prefabs)
             {
                 GameObject gameObject = prefab.Prefab;
-                if (gameObject != null && gameObject.name.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (gameObject == null)
+                    continue;
+                string name = NormalizeObjectName(gameObject.name);
+                if (name.Equals(selector, StringComparison.OrdinalIgnoreCase))
                     return prefab;
+                if (partial == null &&
+                    name.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)
+                    partial = prefab;
             }
-            return null;
+            return partial;
         }
 
         private static PrefabRef FindValuablePrefab(ValuableObject valuable)
@@ -1078,11 +1668,44 @@ namespace RepoLiveControl
                 return weapons.Count == 0 ? null : weapons[UnityEngine.Random.Range(0, weapons.Count)];
             }
 
+            Item partial = null;
             foreach (Item item in items)
             {
-                if (item != null && item.itemName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (item == null || string.IsNullOrWhiteSpace(item.itemName))
+                    continue;
+                if (item.itemName.Equals(selector, StringComparison.OrdinalIgnoreCase))
                     return item;
+                if (partial == null &&
+                    item.itemName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)
+                    partial = item;
             }
+            return partial;
+        }
+
+        private static string FindCartItemName(string selector)
+        {
+            StatsManager stats = StatsManager.instance;
+            if (stats == null || stats.itemDictionary == null)
+                throw new InvalidOperationException("The game item dictionary is unavailable.");
+
+            bool small = selector.Equals("small", StringComparison.OrdinalIgnoreCase) ||
+                         selector.Equals("pocket", StringComparison.OrdinalIgnoreCase) ||
+                         selector.IndexOf("pocket", StringComparison.OrdinalIgnoreCase) >= 0;
+            string preferred = small ? "Item Cart Small" : "Item Cart Medium";
+            if (stats.itemDictionary.ContainsKey(preferred))
+                return preferred;
+
+            foreach (string name in stats.itemDictionary.Keys)
+            {
+                if (name.IndexOf("cart", StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                bool isSmall = name.IndexOf("small", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                               name.IndexOf("pocket", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (isSmall == small)
+                    return name;
+            }
+
             return null;
         }
 
@@ -1158,7 +1781,7 @@ namespace RepoLiveControl
             return false;
         }
 
-        private static EnemyParent GetEnemyParent(EnemySetup setup)
+        internal static EnemyParent GetEnemyParent(EnemySetup setup)
         {
             foreach (PrefabRef spawnObject in setup.spawnObjects)
             {
@@ -1178,6 +1801,34 @@ namespace RepoLiveControl
             if (player == null)
                 throw new InvalidOperationException("The local player is unavailable.");
             return player;
+        }
+
+        private static PlayerAvatar RequireRequestPlayer(ControlRequest request)
+        {
+            if (request != null && request.RequesterActorNumber > 0 && PhotonNetwork.InRoom)
+            {
+                List<PlayerAvatar> players = SemiFunc.PlayerGetList();
+                if (players != null)
+                {
+                    foreach (PlayerAvatar player in players)
+                    {
+                        if (player == null)
+                            continue;
+
+                        PhotonView view = player.photonView != null
+                            ? player.photonView
+                            : player.GetComponent<PhotonView>();
+                        if (view != null && view.Owner != null &&
+                            view.Owner.ActorNumber == request.RequesterActorNumber)
+                            return player;
+                    }
+                }
+
+                throw new InvalidOperationException(
+                    "The requesting player (actor " + request.RequesterActorNumber + ") is unavailable.");
+            }
+
+            return RequireLocalPlayer();
         }
 
         private static object GetField(object instance, string name)
@@ -1217,7 +1868,7 @@ namespace RepoLiveControl
             }
         }
 
-        private static void Complete(ControlRequest request, string result)
+        internal static void Complete(ControlRequest request, string result)
         {
             Debug.Log("[Codex Live Control] " + result);
             request.Complete(result);

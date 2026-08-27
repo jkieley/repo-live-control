@@ -1,0 +1,10 @@
+{
+  "name": "RepoCommandConsole",
+  "version_number": "2.0.0",
+  "website_url": "https://github.com/jkieley/repo-live-control",
+  "description": "Host-authoritative R.E.P.O. command console with fuzzy autocomplete and host-granted client permissions.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2305",
+    "Zehs-REPOLib-4.2.0"
+  ]
+}

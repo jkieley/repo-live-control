@@ -1,24 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <AssemblyName>RepoLiveControlV8</AssemblyName>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>RepoCommandConsole</AssemblyName>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Description>Host-authoritative R.E.P.O. command console with fuzzy autocomplete and delegated client permissions.</Description>
     <RepoGamePath Condition="'$(RepoGamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\REPO</RepoGamePath>
-    <RepoProfilePath Condition="'$(RepoProfilePath)' == ''">C:\Users\James Kieley\AppData\Roaming\Thunderstore Mod Manager\DataFolder\REPO\profiles\modded</RepoProfilePath>
+    <RepoProfilePath Condition="'$(RepoProfilePath)' == ''">$(APPDATA)\Thunderstore Mod Manager\DataFolder\REPO\profiles\modded</RepoProfilePath>
     <ManagedPath>$(RepoGamePath)\REPO_Data\Managed</ManagedPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="RepoLiveControl.cs" />
-    <Reference Include="0Harmony" HintPath="$(RepoProfilePath)\BepInEx\core\0Harmony.dll" />
-    <Reference Include="BepInEx" HintPath="$(RepoProfilePath)\BepInEx\core\BepInEx.dll" />
-    <Reference Include="REPOLib" HintPath="$(RepoProfilePath)\BepInEx\plugins\Zehs-REPOLib\REPOLib.dll" />
-    <Reference Include="Assembly-CSharp" HintPath="$(ManagedPath)\Assembly-CSharp.dll" />
-    <Reference Include="UnityEngine" HintPath="$(ManagedPath)\UnityEngine.dll" />
-    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedPath)\UnityEngine.CoreModule.dll" />
-    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(ManagedPath)\UnityEngine.PhysicsModule.dll" />
-    <Reference Include="PhotonUnityNetworking" HintPath="$(ManagedPath)\PhotonUnityNetworking.dll" />
-    <Reference Include="PhotonRealtime" HintPath="$(ManagedPath)\PhotonRealtime.dll" />
+    <Reference Include="0Harmony" HintPath="$(RepoProfilePath)\BepInEx\core\0Harmony.dll" Private="false" />
+    <Reference Include="BepInEx" HintPath="$(RepoProfilePath)\BepInEx\core\BepInEx.dll" Private="false" />
+    <Reference Include="REPOLib" HintPath="$(RepoProfilePath)\BepInEx\plugins\Zehs-REPOLib\REPOLib.dll" Private="false" />
+    <Reference Include="Assembly-CSharp" HintPath="$(ManagedPath)\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(ManagedPath)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedPath)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(ManagedPath)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(ManagedPath)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(ManagedPath)\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(ManagedPath)\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="Photon3Unity3D" HintPath="$(ManagedPath)\Photon3Unity3D.dll" Private="false" />
+    <Reference Include="PhotonUnityNetworking" HintPath="$(ManagedPath)\PhotonUnityNetworking.dll" Private="false" />
+    <Reference Include="PhotonRealtime" HintPath="$(ManagedPath)\PhotonRealtime.dll" Private="false" />
   </ItemGroup>
 </Project>

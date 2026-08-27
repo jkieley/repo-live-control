@@ -1,27 +1,66 @@
-# Bridge protocol
+# Command protocols
 
-The local named pipe is `CodexRepoLiveControlV8`. Commands and responses are UTF-8, newline-delimited text. A response begins with `OK` or `ERROR`.
+## In-game slash grammar
 
-## Commands
+The independent console sends the raw slash command to the host, which parses it again before execution.
 
 | Command | Meaning |
 |---|---|
-| `enemy|<selector>|<count>|near-player` | Spawn an exact number of enemy objects. `high` prefers Reaper; `randomhigh` selects random Difficulty3 setups. |
-| `loot|<selector>|<count>|<placement>` | Spawn valuables. Selectors may be a prefab-name substring, `random`, or `expensive`. |
-| `item|<selector>|<count>|<placement>` | Spawn shop/items by `Item.itemName` substring. Use `weapon` for a random runtime weapon. |
-| `itemeach|<selector>|<count-per-type>|<placement>` | Spawn the requested count of every distinct item type whose name contains the selector. |
-| `despawn|<selector>|<keep>` | Destroy matching enemies while preserving the first `keep`. Use `all` for every enemy. |
-| `despawnitem|<selector>` | Destroy matching items previously spawned by this bridge. Use `weapon` for bridge-spawned runtime-classified weapons. |
-| `auto|on` / `auto|off` | Enable or disable the active level's automatic enemy director. |
-| `unstick|loot` | Detect loot penetrating environment colliders and teleport it to clear positions. |
-| `duplicate|loot` | Duplicate every tracked valuable once into distinct random, collision-free locations. |
-| `inspect|loot` | Report unique tracked loot names and the registered valuable prefab catalog. |
-| `status` | Return enemy count, loot count, and automatic-spawn state. |
+| `/spawn <target> [count=1] [location=player-location]` | Spawn a canonical `item:`, `valuable:`, or `enemy:` target. |
+| `/despawn <target> [count=all]` | Remove matching objects previously spawned through this mod. |
+| `/grant <player>` | Locally grant a non-host actor for this room; host only. |
+| `/revoke <player>` | Locally revoke a room grant; host only. |
+| `/permissions` | Report the current room grant list. |
+| `/help` | Report compact command help. |
 
-Placements are `safe`, `near-player`, and `at-player`. Safe placement reserves separated collision-free locations. At-player placement intentionally allows piles.
+## Photon event envelope
 
-## Extension points
+The default custom event code is `198`, configurable under `Networking.PhotonEventCode`. All clients in one room must use the same value.
 
-Add a new action in `Bridge.Dispatch`, then keep Unity/Photon access on `RunManager.Update`. Long or high-volume operations should use a frame-batched job like `SpawnJob`. Network-created objects should use REPOLib or Photon host APIs; local `Instantiate`/`Destroy` calls will desynchronize clients.
+```text
+object[] {
+  "com.jameskieley.repo.commandconsole",
+  2,
+  "request" | "response" | "notice",
+  requestId,
+  commandOrResult
+}
+```
 
-The pipe thread must only enqueue requests and wait for responses. It must not access Unity objects.
+- Requests are reliable events sent to `ReceiverGroup.MasterClient`.
+- Responses and notices are reliable events targeted to one actor.
+- The host trusts `EventData.Sender`, not payload identity data.
+- Clients accept responses/notices only from the current Master Client.
+- Commands are limited to 512 characters, responses to 2048 characters, and remote actors to five requests per rolling three seconds.
+- Remote `/grant` and `/revoke` are rejected before enqueue and checked again during dispatch.
+
+## Local named pipe
+
+The local named pipe is `CodexRepoCommandConsoleV2`. Commands and responses are UTF-8, newline-delimited text. Every response begins with `OK` or `ERROR`.
+
+| Command | Meaning |
+|---|---|
+| `enemy|<selector>|<count>|<placement>` | Spawn an exact number of enemy objects. |
+| `loot|<selector>|<count>|<placement>` | Spawn valuables by substring, `random`, `medium`, or `expensive`. |
+| `item|<selector>|<count>|<placement>` | Spawn shop/items by item-name substring; `weapon` selects a runtime weapon. |
+| `cart|<selector>|<count>|<placement>` | Spawn the medium or small networked cart. |
+| `itemeach|<selector>|<count-per-type>|<placement>` | Spawn a count of every matching item type. |
+| `itemspread|<selector>|<count>|<placement>` | Distribute an exact total across matching item types. |
+| `despawn|<selector>|<keep>` | Destroy matching live enemies while preserving the first `keep`. |
+| `despawnitem|<selector>` | Destroy matching items previously spawned through this bridge. |
+| `auto|on` / `auto|off` | Toggle the active enemy director. |
+| `unstick|loot` | Move loot penetrating environment colliders to clear points. |
+| `duplicate|loot` | Duplicate tracked loot once into distinct clear points. |
+| `topup3|loot` | Add one copy per original after one full duplication. |
+| `inspect|loot` | Report tracked and registered valuable names. |
+| `status` | Report enemy count, loot count, and automatic-spawn state. |
+
+Pipe placements are `safe`, `near-player`, and `at-player`. The pipe thread never touches Unity objects; it enqueues and waits while the `RunManager.Update` Harmony patch performs game work.
+
+## Runtime invariants
+
+- Only the host creates/destroys network objects.
+- Enemy results count actual `EnemyParent` objects, including grouped setups.
+- High-volume operations are frame-batched.
+- Random collision-free placement reserves separated points and checks occupied volumes.
+- Request completion occurs only after the observed job finishes or fails.
