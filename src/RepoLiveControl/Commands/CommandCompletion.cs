@@ -13,9 +13,32 @@ namespace RepoLiveControl.Commands
             new CompletionCatalog(new string[0], new string[0]);
 
         public CompletionCatalog(IEnumerable<string> targets, IEnumerable<string> players)
+            : this(targets, players, true)
+        {
+        }
+
+        public CompletionCatalog(
+            IEnumerable<string> targets,
+            IEnumerable<string> players,
+            bool includeHostManagementCommands)
+            : this(
+                targets,
+                players,
+                players,
+                includeHostManagementCommands)
+        {
+        }
+
+        public CompletionCatalog(
+            IEnumerable<string> targets,
+            IEnumerable<string> grantPlayers,
+            IEnumerable<string> revokePlayers,
+            bool includeHostManagementCommands)
         {
             Targets = CopyDistinct(targets);
-            Players = CopyDistinct(players);
+            GrantPlayers = CopyDistinct(grantPlayers);
+            RevokePlayers = CopyDistinct(revokePlayers);
+            IncludeHostManagementCommands = includeHostManagementCommands;
         }
 
         public static CompletionCatalog Empty
@@ -25,7 +48,11 @@ namespace RepoLiveControl.Commands
 
         public IReadOnlyList<string> Targets { get; private set; }
 
-        public IReadOnlyList<string> Players { get; private set; }
+        public IReadOnlyList<string> GrantPlayers { get; private set; }
+
+        public IReadOnlyList<string> RevokePlayers { get; private set; }
+
+        public bool IncludeHostManagementCommands { get; private set; }
 
         private static IReadOnlyList<string> CopyDistinct(IEnumerable<string> values)
         {
@@ -98,6 +125,8 @@ namespace RepoLiveControl.Commands
             CommandLocations.PlayerLocation,
             CommandLocations.RandomNonCollisionLocation
         });
+        private static readonly IReadOnlyList<string> SpawnCountOrLocations =
+            BuildSpawnCountOrLocations();
 
         public static IReadOnlyList<CompletionItem> GetCompletions(
             string input,
@@ -121,7 +150,7 @@ namespace RepoLiveControl.Commands
             IEnumerable<string> source;
             if (position.ArgumentIndex == 0)
             {
-                source = SlashCommandParser.CommandNames;
+                source = GetCommandNames(catalog);
             }
             else
             {
@@ -136,11 +165,15 @@ namespace RepoLiveControl.Commands
                         tokenization.Tokens[0].Start,
                         tokenization.Tokens[0].Length,
                         tokenization.Tokens[0].Value);
-                    source = SlashCommandParser.CommandNames;
+                    source = GetCommandNames(catalog);
                 }
                 else
                 {
-                    source = GetArgumentSource(kind, position.ArgumentIndex, catalog);
+                    source = GetArgumentSource(
+                        kind,
+                        position.ArgumentIndex,
+                        tokenization.Tokens,
+                        catalog);
                 }
             }
 
@@ -269,6 +302,7 @@ namespace RepoLiveControl.Commands
         private static IEnumerable<string> GetArgumentSource(
             SlashCommandKind kind,
             int argumentIndex,
+            IReadOnlyList<CommandToken> tokens,
             CompletionCatalog catalog)
         {
             switch (kind)
@@ -277,9 +311,13 @@ namespace RepoLiveControl.Commands
                     if (argumentIndex == 1)
                         return GetSpawnTargets(catalog.Targets);
                     if (argumentIndex == 2)
-                        return SpawnCounts;
+                        return SpawnCountOrLocations;
                     if (argumentIndex == 3)
+                    {
+                        if (tokens.Count >= 3 && IsLocation(tokens[2].Value))
+                            return new string[0];
                         return Locations;
+                    }
                     break;
                 case SlashCommandKind.Despawn:
                     if (argumentIndex == 1)
@@ -288,12 +326,25 @@ namespace RepoLiveControl.Commands
                         return DespawnCounts;
                     break;
                 case SlashCommandKind.Grant:
+                    if (argumentIndex == 1 && catalog.IncludeHostManagementCommands)
+                        return catalog.GrantPlayers;
+                    break;
                 case SlashCommandKind.Revoke:
-                    if (argumentIndex == 1)
-                        return catalog.Players;
+                    if (argumentIndex == 1 && catalog.IncludeHostManagementCommands)
+                        return catalog.RevokePlayers;
                     break;
             }
             return new string[0];
+        }
+
+        private static bool IsLocation(string value)
+        {
+            foreach (string location in Locations)
+            {
+                if (location.Equals(value, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         private static IEnumerable<string> GetSpawnTargets(IEnumerable<string> targets)
@@ -329,6 +380,28 @@ namespace RepoLiveControl.Commands
             foreach (string count in SpawnCounts)
                 counts.Add(count);
             return counts.AsReadOnly();
+        }
+
+        private static IEnumerable<string> GetCommandNames(CompletionCatalog catalog)
+        {
+            foreach (string commandName in SlashCommandParser.CommandNames)
+            {
+                if (!catalog.IncludeHostManagementCommands &&
+                    (commandName.Equals("/grant", StringComparison.OrdinalIgnoreCase) ||
+                     commandName.Equals("/revoke", StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+                yield return commandName;
+            }
+        }
+
+        private static IReadOnlyList<string> BuildSpawnCountOrLocations()
+        {
+            var values = new List<string>(SpawnCounts);
+            foreach (string location in Locations)
+                values.Add(location);
+            return values.AsReadOnly();
         }
 
         private sealed class CompletionPosition

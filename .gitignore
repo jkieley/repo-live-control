@@ -3,6 +3,9 @@
 *.dll
 *.pdb
 *.log
+dist/*.zip.previous-*
+dist/.package-*
+dist/.package-stage-*
 repo-runtime-status.txt
 .vs/
 .idea/

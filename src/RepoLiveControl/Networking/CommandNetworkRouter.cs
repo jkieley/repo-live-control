@@ -10,21 +10,29 @@ namespace RepoLiveControl.Networking
 {
     internal sealed class CommandNetworkRouter : IOnEventCallback, IDisposable
     {
-        private const string Magic = "com.jameskieley.repo.commandconsole";
-        private const int ProtocolVersion = 2;
-        private const string RequestKind = "request";
-        private const string ResponseKind = "response";
-        private const string NoticeKind = "notice";
-        private const int MaximumCommandLength = 512;
-        private const int MaximumResponseLength = 2048;
+        private const int MaximumOutstandingPerActor = 2;
+        private const int MaximumOutstandingGlobal = 32;
+        private const int MaximumRememberedRequestIds = 2048;
 
         private readonly byte eventCode;
         private readonly PermissionService permissions;
         private readonly Action<string> resultSink;
-        private readonly HashSet<string> pendingRequests =
+        private readonly PendingCommandRegistry pendingRequests =
+            new PendingCommandRegistry(30f);
+        private readonly SlidingWindowRateLimiter rateLimiter =
+            new SlidingWindowRateLimiter(5, 3f);
+        private readonly RateLimitNoticeGate rateLimitNoticeGate =
+            new RateLimitNoticeGate(3f);
+        private readonly PhotonCallbackRegistrationLifecycle callbackRegistration =
+            new PhotonCallbackRegistrationLifecycle();
+        private readonly HashSet<string> acceptedRemoteRequests =
             new HashSet<string>(StringComparer.Ordinal);
-        private readonly Dictionary<int, Queue<float>> requestTimes =
-            new Dictionary<int, Queue<float>>();
+        private readonly HashSet<string> seenRemoteRequests =
+            new HashSet<string>(StringComparer.Ordinal);
+        private readonly Queue<string> seenRemoteRequestOrder = new Queue<string>();
+        private readonly Dictionary<int, int> outstandingByActor =
+            new Dictionary<int, int>();
+        private long observedSessionRevision = -1;
         private bool disposed;
 
         internal CommandNetworkRouter(
@@ -35,26 +43,41 @@ namespace RepoLiveControl.Networking
             this.eventCode = eventCode;
             this.permissions = permissions;
             this.resultSink = resultSink;
-            PhotonNetwork.AddCallbackTarget(this);
         }
 
         internal string SendRequest(string command)
         {
+            Update(true);
             if (!PhotonNetwork.InRoom || PhotonNetwork.MasterClient == null)
                 throw new InvalidOperationException("No multiplayer host is available.");
-            if (command == null || command.Length == 0 || command.Length > MaximumCommandLength)
+            if (command == null || command.Length == 0 ||
+                command.Length > CommandNetworkPolicy.MaximumCommandLength)
                 throw new InvalidOperationException("Command length must be between 1 and 512 characters.");
-            if (!IsSlashCommandPayload(command))
+            if (!CommandNetworkPolicy.IsSlashCommandPayload(command))
                 throw new InvalidOperationException("Network commands must use the slash-command interface.");
             CommandParseResult parsed = SlashCommandParser.Parse(command);
             if (!parsed.Success)
                 throw new InvalidOperationException(parsed.ErrorMessage);
+            if (pendingRequests.Count > 0)
+                throw new InvalidOperationException(
+                    "Wait for the previous host response before sending another command.");
 
             string requestId = Guid.NewGuid().ToString("N");
-            pendingRequests.Add(requestId);
+            int masterActorNumber = PhotonNetwork.MasterClient.ActorNumber;
+            if (!pendingRequests.TryAdd(
+                requestId,
+                masterActorNumber,
+                permissions.SessionRevision,
+                Time.realtimeSinceStartup))
+            {
+                throw new InvalidOperationException("Could not track the command request.");
+            }
             bool sent = PhotonNetwork.RaiseEvent(
                 eventCode,
-                Envelope(RequestKind, requestId, command),
+                CommandNetworkPolicy.Envelope(
+                    CommandNetworkPolicy.RequestKind,
+                    requestId,
+                    command),
                 new RaiseEventOptions { Receivers = ReceiverGroup.MasterClient },
                 SendOptions.SendReliable);
             if (!sent)
@@ -65,11 +88,67 @@ namespace RepoLiveControl.Networking
             return requestId;
         }
 
+        internal void Update(bool networkSessionSceneActive)
+        {
+            if (disposed)
+                return;
+
+            if (!networkSessionSceneActive)
+            {
+                callbackRegistration.Synchronize(
+                    false,
+                    () => PhotonNetwork.AddCallbackTarget(this),
+                    () => PhotonNetwork.RemoveCallbackTarget(this));
+                permissions.Reset();
+                return;
+            }
+
+            bool roomActive = PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null;
+            callbackRegistration.Synchronize(
+                roomActive,
+                () => PhotonNetwork.AddCallbackTarget(this),
+                () => PhotonNetwork.RemoveCallbackTarget(this));
+
+            permissions.UpdateSession();
+            long currentRevision = permissions.SessionRevision;
+            if (observedSessionRevision < 0)
+            {
+                observedSessionRevision = currentRevision;
+            }
+            else if (observedSessionRevision != currentRevision)
+            {
+                observedSessionRevision = currentRevision;
+                rateLimiter.Clear();
+                rateLimitNoticeGate.Clear();
+                seenRemoteRequests.Clear();
+                seenRemoteRequestOrder.Clear();
+            }
+
+            bool inRoom = roomActive;
+            int currentMaster = inRoom && PhotonNetwork.MasterClient != null
+                ? PhotonNetwork.MasterClient.ActorNumber
+                : -1;
+            IReadOnlyList<PendingCommandFailure> failures =
+                pendingRequests.CollectFailures(
+                    Time.realtimeSinceStartup,
+                    inRoom,
+                    currentMaster,
+                    currentRevision);
+            if (resultSink == null)
+                return;
+            foreach (PendingCommandFailure failure in failures)
+                resultSink(failure.Error);
+        }
+
         internal void SendNotice(int targetActorNumber, string message)
         {
             if (!PhotonNetwork.InRoom || !PhotonNetwork.IsMasterClient || targetActorNumber <= 0)
                 return;
-            SendToActor(NoticeKind, string.Empty, message, targetActorNumber);
+            SendToActor(
+                CommandNetworkPolicy.NoticeKind,
+                string.Empty,
+                message,
+                targetActorNumber);
         }
 
         public void OnEvent(EventData photonEvent)
@@ -81,16 +160,20 @@ namespace RepoLiveControl.Networking
             string kind;
             string requestId;
             string payload;
-            if (!TryReadEnvelope(envelope, out kind, out requestId, out payload))
+            if (!CommandNetworkPolicy.TryReadEnvelope(
+                envelope,
+                out kind,
+                out requestId,
+                out payload))
                 return;
 
-            if (kind == RequestKind)
+            if (kind == CommandNetworkPolicy.RequestKind)
                 ReceiveRequest(photonEvent.Sender, requestId, payload);
             else if (!IsFromCurrentMaster(photonEvent.Sender))
                 return;
-            else if (kind == ResponseKind)
+            else if (kind == CommandNetworkPolicy.ResponseKind)
                 ReceiveResponse(requestId, payload);
-            else if (kind == NoticeKind && resultSink != null)
+            else if (kind == CommandNetworkPolicy.NoticeKind && resultSink != null)
                 resultSink(payload);
         }
 
@@ -98,53 +181,82 @@ namespace RepoLiveControl.Networking
         {
             if (!PhotonNetwork.InRoom || !PhotonNetwork.IsMasterClient || senderActorNumber <= 0)
                 return;
-            if (string.IsNullOrEmpty(requestId) || string.IsNullOrWhiteSpace(command) ||
-                command.Length > MaximumCommandLength)
+            permissions.UpdateSession();
+            bool validRequestId = CommandNetworkPolicy.IsValidRequestId(requestId);
+            float receivedAt = Time.realtimeSinceStartup;
+            // Charge every request at the trust boundary before parsing,
+            // authorization, duplicate checks, or executor admission. Otherwise
+            // rejected traffic could bypass the advertised per-player budget.
+            if (!rateLimiter.TryConsume(senderActorNumber, receivedAt))
             {
-                SendResponse(senderActorNumber, requestId, "ERROR Malformed command request.");
-                return;
-            }
-            if (!IsSlashCommandPayload(command))
-            {
-                SendResponse(senderActorNumber, requestId,
-                    "ERROR Network commands must use the slash-command interface.");
-                return;
-            }
-            CommandParseResult parsed = SlashCommandParser.Parse(command);
-            if (!parsed.Success)
-            {
-                SendResponse(senderActorNumber, requestId, "ERROR " + parsed.ErrorMessage);
-                return;
-            }
-            if (IsHostOnlyVerb(command))
-            {
-                SendResponse(senderActorNumber, requestId,
-                    "ERROR /grant and /revoke can only be run locally by the host.");
-                return;
-            }
-            if (!permissions.IsAllowed(senderActorNumber) && !IsPublicVerb(command))
-            {
-                SendResponse(senderActorNumber, requestId,
-                    "ERROR The host has not granted you command permission.");
-                return;
-            }
-            if (!ConsumeRateLimit(senderActorNumber))
-            {
-                SendResponse(senderActorNumber, requestId,
-                    "ERROR Command rate limit exceeded; wait a moment and try again.");
+                if (rateLimitNoticeGate.ShouldNotify(senderActorNumber, receivedAt))
+                {
+                    SendResponse(
+                        senderActorNumber,
+                        validRequestId ? requestId : string.Empty,
+                        "ERROR Command rate limit exceeded; wait a moment and try again.");
+                }
                 return;
             }
 
+            if (!validRequestId)
+            {
+                SendResponse(senderActorNumber, string.Empty, "ERROR Malformed command request ID.");
+                return;
+            }
+
+            CommandRequestValidation validation =
+                CommandNetworkPolicy.ValidateRemoteCommand(
+                    command,
+                    permissions.IsAllowed(senderActorNumber));
+            if (!validation.Allowed)
+            {
+                SendResponse(senderActorNumber, requestId, validation.Error);
+                return;
+            }
+
+            string requestKey = senderActorNumber + ":" + requestId;
+            if (seenRemoteRequests.Contains(requestKey) ||
+                acceptedRemoteRequests.Contains(requestKey))
+            {
+                SendResponse(senderActorNumber, requestId,
+                    "ERROR Duplicate command request ID.");
+                return;
+            }
+
+            int actorOutstanding;
+            outstandingByActor.TryGetValue(senderActorNumber, out actorOutstanding);
+            if (actorOutstanding >= MaximumOutstandingPerActor ||
+                acceptedRemoteRequests.Count >= MaximumOutstandingGlobal)
+            {
+                SendResponse(senderActorNumber, requestId,
+                    "ERROR Too many commands are already waiting for the host executor.");
+                return;
+            }
+
+            long requiredSessionRevision = permissions.SessionRevision;
+            bool requiresGrant = !CommandNetworkPolicy.IsPublicVerb(command);
+            RememberRemoteRequest(requestKey);
+            acceptedRemoteRequests.Add(requestKey);
+            outstandingByActor[senderActorNumber] = actorOutstanding + 1;
             Bridge.Enqueue(new ControlRequest(
                 command,
                 CommandRequestSource.RemoteClient,
                 senderActorNumber,
-                result => SendResponse(senderActorNumber, requestId, result)));
+                result =>
+                {
+                    ReleaseRemoteRequest(senderActorNumber, requestKey);
+                    if (permissions.SessionRevision == requiredSessionRevision)
+                        SendResponse(senderActorNumber, requestId, result);
+                },
+                requiredSessionRevision,
+                () => permissions.SessionRevision == requiredSessionRevision &&
+                      (!requiresGrant || permissions.IsAllowed(senderActorNumber))));
         }
 
         private void ReceiveResponse(string requestId, string response)
         {
-            if (string.IsNullOrEmpty(requestId) || !pendingRequests.Remove(requestId))
+            if (!pendingRequests.TryComplete(requestId))
                 return;
             if (resultSink != null)
                 resultSink(response);
@@ -152,7 +264,11 @@ namespace RepoLiveControl.Networking
 
         private void SendResponse(int targetActorNumber, string requestId, string response)
         {
-            SendToActor(ResponseKind, requestId, response, targetActorNumber);
+            SendToActor(
+                CommandNetworkPolicy.ResponseKind,
+                requestId,
+                response,
+                targetActorNumber);
         }
 
         private void SendToActor(
@@ -165,86 +281,51 @@ namespace RepoLiveControl.Networking
                 return;
 
             string boundedPayload = payload ?? string.Empty;
-            if (boundedPayload.Length > MaximumResponseLength)
-                boundedPayload = boundedPayload.Substring(0, MaximumResponseLength);
-            PhotonNetwork.RaiseEvent(
+            if (boundedPayload.Length > CommandNetworkPolicy.MaximumResponseLength)
+            {
+                boundedPayload = boundedPayload.Substring(
+                    0,
+                    CommandNetworkPolicy.MaximumResponseLength);
+            }
+            bool sent = PhotonNetwork.RaiseEvent(
                 eventCode,
-                Envelope(kind, requestId ?? string.Empty, boundedPayload),
+                CommandNetworkPolicy.Envelope(kind, requestId, boundedPayload),
                 new RaiseEventOptions { TargetActors = new[] { targetActorNumber } },
                 SendOptions.SendReliable);
-        }
-
-        private static object[] Envelope(string kind, string requestId, string payload)
-        {
-            return new object[] { Magic, ProtocolVersion, kind, requestId, payload };
-        }
-
-        private static bool TryReadEnvelope(
-            object[] values,
-            out string kind,
-            out string requestId,
-            out string payload)
-        {
-            kind = string.Empty;
-            requestId = string.Empty;
-            payload = string.Empty;
-            if (values == null || values.Length != 5 || !(values[0] is string) ||
-                !string.Equals((string)values[0], Magic, StringComparison.Ordinal))
-                return false;
-
-            int version;
-            try
+            if (!sent && Plugin.Log != null)
             {
-                version = Convert.ToInt32(values[1]);
+                Plugin.Log.LogWarning(
+                    "Photon did not accept a " + kind +
+                    " event for actor " + targetActorNumber + ".");
             }
-            catch
+        }
+
+        private void ReleaseRemoteRequest(int actorNumber, string requestKey)
+        {
+            acceptedRemoteRequests.Remove(requestKey);
+            int outstanding;
+            if (!outstandingByActor.TryGetValue(actorNumber, out outstanding))
+                return;
+            if (outstanding <= 1)
+                outstandingByActor.Remove(actorNumber);
+            else
+                outstandingByActor[actorNumber] = outstanding - 1;
+        }
+
+        private void RememberRemoteRequest(string requestKey)
+        {
+            seenRemoteRequests.Add(requestKey);
+            seenRemoteRequestOrder.Enqueue(requestKey);
+            while (seenRemoteRequestOrder.Count > MaximumRememberedRequestIds)
             {
-                return false;
+                string oldest = seenRemoteRequestOrder.Dequeue();
+                if (acceptedRemoteRequests.Contains(oldest))
+                {
+                    seenRemoteRequestOrder.Enqueue(oldest);
+                    continue;
+                }
+                seenRemoteRequests.Remove(oldest);
             }
-            if (version != ProtocolVersion || !(values[2] is string) ||
-                !(values[3] is string) || !(values[4] is string))
-                return false;
-
-            kind = (string)values[2];
-            requestId = (string)values[3];
-            payload = (string)values[4];
-            return kind == RequestKind || kind == ResponseKind || kind == NoticeKind;
-        }
-
-        private bool ConsumeRateLimit(int actorNumber)
-        {
-            Queue<float> times;
-            if (!requestTimes.TryGetValue(actorNumber, out times))
-            {
-                times = new Queue<float>();
-                requestTimes[actorNumber] = times;
-            }
-
-            float now = Time.realtimeSinceStartup;
-            while (times.Count > 0 && now - times.Peek() > 3f)
-                times.Dequeue();
-            if (times.Count >= 5)
-                return false;
-            times.Enqueue(now);
-            return true;
-        }
-
-        private static bool IsHostOnlyVerb(string command)
-        {
-            string verb = GetVerb(command);
-            return verb == "grant" || verb == "revoke";
-        }
-
-        private static bool IsSlashCommandPayload(string command)
-        {
-            string trimmed = (command ?? string.Empty).TrimStart();
-            return trimmed.StartsWith("/", StringComparison.Ordinal);
-        }
-
-        private static bool IsPublicVerb(string command)
-        {
-            string verb = GetVerb(command);
-            return verb == "help" || verb == "permissions";
         }
 
         private static bool IsFromCurrentMaster(int senderActorNumber)
@@ -253,23 +334,20 @@ namespace RepoLiveControl.Networking
                    PhotonNetwork.MasterClient.ActorNumber == senderActorNumber;
         }
 
-        private static string GetVerb(string command)
-        {
-            string trimmed = (command ?? string.Empty).TrimStart();
-            if (trimmed.StartsWith("/", StringComparison.Ordinal))
-                trimmed = trimmed.Substring(1);
-            int separator = trimmed.IndexOfAny(new[] { ' ', '\t', '\r', '\n' });
-            return (separator < 0 ? trimmed : trimmed.Substring(0, separator)).ToLowerInvariant();
-        }
-
         public void Dispose()
         {
             if (disposed)
                 return;
             disposed = true;
-            PhotonNetwork.RemoveCallbackTarget(this);
+            callbackRegistration.Dispose(
+                () => PhotonNetwork.RemoveCallbackTarget(this));
             pendingRequests.Clear();
-            requestTimes.Clear();
+            rateLimiter.Clear();
+            rateLimitNoticeGate.Clear();
+            acceptedRemoteRequests.Clear();
+            seenRemoteRequests.Clear();
+            seenRemoteRequestOrder.Clear();
+            outstandingByActor.Clear();
         }
     }
 }

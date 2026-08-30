@@ -9,5 +9,9 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="../../src/RepoLiveControl/Commands/*.cs" Link="Commands/%(Filename)%(Extension)" />
+    <Compile Include="../../src/RepoLiveControl/Networking/CommandNetworkPolicy.cs" Link="Networking/CommandNetworkPolicy.cs" />
+    <Compile Include="../../src/RepoLiveControl/Networking/PhotonCallbackRegistrationLifecycle.cs" Link="Networking/PhotonCallbackRegistrationLifecycle.cs" />
+    <Compile Include="../../src/RepoLiveControl/Runtime/ConsoleToggleInputPolicy.cs" Link="Runtime/ConsoleToggleInputPolicy.cs" />
+    <Compile Include="../../src/RepoLiveControl/Runtime/NetworkSessionSceneActivationPolicy.cs" Link="Runtime/NetworkSessionSceneActivationPolicy.cs" />
   </ItemGroup>
 </Project>

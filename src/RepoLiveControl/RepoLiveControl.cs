@@ -10,8 +10,11 @@ using BepInEx.Logging;
 using HarmonyLib;
 using Photon.Pun;
 using REPOLib.Modules;
+using RepoLiveControl.Commands;
+using RepoLiveControl.Networking;
 using RepoLiveControl.Runtime;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace RepoLiveControl
 {
@@ -33,8 +36,10 @@ namespace RepoLiveControl
         {
             Instance = this;
             Log = Logger;
-            Bridge.Start();
             commandConsole = new CommandConsoleRuntime(this);
+            Bridge.PublishPermissionSessionRevision(
+                commandConsole.Permissions.SessionRevision);
+            Bridge.Start();
             Logger.LogInfo(
                 PluginName + " " + PluginVersion +
                 " loaded. Press " + commandConsole.ToggleKeyLabel + " to open the command console.");
@@ -75,11 +80,26 @@ namespace RepoLiveControl
         internal readonly CommandRequestSource Source;
         internal readonly int RequesterActorNumber;
         internal readonly Action<string> CompletionCallback;
+        internal readonly long? RequiredSessionRevision;
+        internal readonly Func<bool> AuthorizationValidator;
         internal readonly ManualResetEventSlim Completed = new ManualResetEventSlim(false);
         internal string Result = "ERROR No result was produced.";
+        internal bool ExecutionContextBound;
+        internal bool ExecutionStartedInRoom;
+        internal object ExecutionRoomIdentity;
+        internal int ExecutionMasterActorNumber = -1;
+        internal long ExecutionSessionRevision = -1;
+        private int completionState;
+        private int cancellationState;
 
         internal ControlRequest(string command)
-            : this(command, CommandRequestSource.NamedPipe, -1, null)
+            : this(
+                command,
+                CommandRequestSource.NamedPipe,
+                -1,
+                null,
+                CapturePublishedSessionRevision(),
+                null)
         {
         }
 
@@ -88,15 +108,36 @@ namespace RepoLiveControl
             CommandRequestSource source,
             int requesterActorNumber,
             Action<string> completionCallback)
+            : this(
+                command,
+                source,
+                requesterActorNumber,
+                completionCallback,
+                null,
+                null)
+        {
+        }
+
+        internal ControlRequest(
+            string command,
+            CommandRequestSource source,
+            int requesterActorNumber,
+            Action<string> completionCallback,
+            long? requiredSessionRevision,
+            Func<bool> authorizationValidator)
         {
             Command = command;
             Source = source;
             RequesterActorNumber = requesterActorNumber;
             CompletionCallback = completionCallback;
+            RequiredSessionRevision = requiredSessionRevision;
+            AuthorizationValidator = authorizationValidator;
         }
 
         internal void Complete(string result)
         {
+            if (Interlocked.Exchange(ref completionState, 1) != 0)
+                return;
             Result = result;
             Completed.Set();
             if (CompletionCallback != null)
@@ -111,6 +152,26 @@ namespace RepoLiveControl
                         Plugin.Log.LogError("Command completion callback failed: " + exception);
                 }
             }
+        }
+
+        internal bool IsCancelled
+        {
+            get { return Volatile.Read(ref cancellationState) != 0; }
+        }
+
+        internal void Cancel(string result)
+        {
+            Interlocked.Exchange(ref cancellationState, 1);
+            if (Interlocked.Exchange(ref completionState, 1) != 0)
+                return;
+            Result = result;
+            Completed.Set();
+        }
+
+        private static long? CapturePublishedSessionRevision()
+        {
+            long revision = Bridge.GetPublishedPermissionSessionRevision();
+            return revision >= 0 ? (long?)revision : null;
         }
     }
 
@@ -129,6 +190,35 @@ namespace RepoLiveControl
         Cart
     }
 
+    internal sealed class EnemyPlacementReservation
+    {
+        internal readonly Vector3 Position;
+        internal readonly float HorizontalRadius;
+
+        internal EnemyPlacementReservation(Vector3 position, float horizontalRadius)
+        {
+            Position = position;
+            HorizontalRadius = horizontalRadius;
+        }
+    }
+
+    internal sealed class EnemyClearanceVolume
+    {
+        internal readonly Vector3 CenterOffset;
+        internal readonly Vector3 HalfExtents;
+        internal readonly float HorizontalRadius;
+
+        internal EnemyClearanceVolume(
+            Vector3 centerOffset,
+            Vector3 halfExtents,
+            float horizontalRadius)
+        {
+            CenterOffset = centerOffset;
+            HalfExtents = halfExtents;
+            HorizontalRadius = horizontalRadius;
+        }
+    }
+
     internal sealed class SpawnJob
     {
         internal readonly ControlRequest Request;
@@ -138,9 +228,11 @@ namespace RepoLiveControl
         internal readonly int Requested;
         internal readonly Vector3 Anchor;
         internal readonly List<Vector3> ReservedPositions = new List<Vector3>();
+        internal readonly List<EnemyPlacementReservation> EnemyReservations =
+            new List<EnemyPlacementReservation>();
         internal int Spawned;
         internal bool Finished;
-        internal string Names = string.Empty;
+        internal readonly SpawnNameSummary NameSummary = new SpawnNameSummary();
 
         internal SpawnJob(
             ControlRequest request,
@@ -249,6 +341,10 @@ namespace RepoLiveControl
         private static readonly ConcurrentQueue<ControlRequest> Requests = new ConcurrentQueue<ControlRequest>();
         private static readonly List<SpawnedObjectRecord> SpawnedObjects =
             new List<SpawnedObjectRecord>();
+        private static readonly System.Reflection.FieldInfo EnemyFirstSpawnPointField =
+            AccessTools.Field(typeof(EnemyParent), "firstSpawnPoint");
+        private static readonly System.Reflection.FieldInfo EnemyFirstSpawnPointsField =
+            AccessTools.Field(typeof(EnemyDirector), "enemyFirstSpawnPoints");
         private static readonly string[] ExpensiveLootNames =
         {
             "Diamond Display",
@@ -266,6 +362,7 @@ namespace RepoLiveControl
         };
 
         private static int started;
+        private static long publishedPermissionSessionRevision = -1;
         private static SpawnJob activeJob;
         private static DuplicateLootJob activeDuplicateLootJob;
         private static ItemBatchJob activeItemBatchJob;
@@ -310,6 +407,16 @@ namespace RepoLiveControl
             Requests.Enqueue(request);
         }
 
+        internal static void PublishPermissionSessionRevision(long revision)
+        {
+            Interlocked.Exchange(ref publishedPermissionSessionRevision, revision);
+        }
+
+        internal static long GetPublishedPermissionSessionRevision()
+        {
+            return Interlocked.Read(ref publishedPermissionSessionRevision);
+        }
+
         private static void ListenForRequests()
         {
             while (true)
@@ -339,9 +446,16 @@ namespace RepoLiveControl
                         {
                             var request = new ControlRequest(command);
                             Requests.Enqueue(request);
-                            response = request.Completed.Wait(TimeSpan.FromSeconds(30))
-                                ? request.Result
-                                : "ERROR Command timed out waiting for the game thread.";
+                            if (request.Completed.Wait(TimeSpan.FromSeconds(30)))
+                            {
+                                response = request.Result;
+                            }
+                            else
+                            {
+                                response = "ERROR Command timed out waiting for the game thread; " +
+                                    "the queued request was cancelled.";
+                                request.Cancel(response);
+                            }
                         }
 
                         using (var writer = new StreamWriter(
@@ -373,8 +487,12 @@ namespace RepoLiveControl
 
         internal static void ProcessFrame()
         {
-            if (AbortActiveJobsIfAuthorityLost())
-                return;
+            if (HasActiveJob())
+            {
+                RefreshPermissionSession();
+                if (AbortActiveJobsIfAuthorityLost())
+                    return;
+            }
 
             if (activeBalancedItemJob != null)
             {
@@ -411,11 +529,16 @@ namespace RepoLiveControl
             ControlRequest request;
             if (!Requests.TryDequeue(out request))
                 return;
+            if (request.IsCancelled)
+                return;
 
             try
             {
-                if (PhotonNetwork.InRoom && !PhotonNetwork.IsMasterClient)
-                    throw new InvalidOperationException("This client is not the lobby host.");
+                RefreshPermissionSession();
+                BindExecutionContext(request);
+                string invalidReason = GetInvalidExecutionReason(request);
+                if (invalidReason != null)
+                    throw new InvalidOperationException(invalidReason);
 
                 Dispatch(request);
             }
@@ -427,71 +550,186 @@ namespace RepoLiveControl
 
         private static bool AbortActiveJobsIfAuthorityLost()
         {
-            if (!PhotonNetwork.InRoom || PhotonNetwork.IsMasterClient)
-                return false;
-
             bool aborted = false;
             if (activeBalancedItemJob != null)
             {
-                if (!activeBalancedItemJob.Finished)
+                string reason = GetInvalidExecutionReason(activeBalancedItemJob.Request);
+                if (!activeBalancedItemJob.Finished && reason != null)
                 {
                     activeBalancedItemJob.Finished = true;
                     activeBalancedItemJob.ReservedPositions.Clear();
                     Complete(activeBalancedItemJob.Request, string.Format(
-                        "ERROR Host authority was lost; balanced item spread stopped after {0}/{1}.",
+                        "ERROR {2} Balanced item spread stopped after {0}/{1}.",
                         activeBalancedItemJob.Spawned,
-                        activeBalancedItemJob.Items.Count));
+                        activeBalancedItemJob.Items.Count,
+                        reason));
                     aborted = true;
                 }
-                activeBalancedItemJob = null;
+                if (activeBalancedItemJob.Finished)
+                    activeBalancedItemJob = null;
             }
 
             if (activeItemBatchJob != null)
             {
-                if (!activeItemBatchJob.Finished)
+                string reason = GetInvalidExecutionReason(activeItemBatchJob.Request);
+                if (!activeItemBatchJob.Finished && reason != null)
                 {
                     activeItemBatchJob.Finished = true;
                     activeItemBatchJob.ReservedPositions.Clear();
                     Complete(activeItemBatchJob.Request, string.Format(
-                        "ERROR Host authority was lost; item batch stopped after {0}/{1}.",
+                        "ERROR {2} Item batch stopped after {0}/{1}.",
                         activeItemBatchJob.Spawned,
-                        activeItemBatchJob.Items.Count));
+                        activeItemBatchJob.Items.Count,
+                        reason));
                     aborted = true;
                 }
-                activeItemBatchJob = null;
+                if (activeItemBatchJob.Finished)
+                    activeItemBatchJob = null;
             }
 
             if (activeDuplicateLootJob != null)
             {
-                if (!activeDuplicateLootJob.Finished)
+                string reason = GetInvalidExecutionReason(activeDuplicateLootJob.Request);
+                if (!activeDuplicateLootJob.Finished && reason != null)
                 {
                     activeDuplicateLootJob.Finished = true;
                     activeDuplicateLootJob.Positions.Clear();
                     Complete(activeDuplicateLootJob.Request, string.Format(
-                        "ERROR Host authority was lost; loot duplication stopped after {0}/{1}.",
+                        "ERROR {2} Loot duplication stopped after {0}/{1}.",
                         activeDuplicateLootJob.Spawned,
-                        activeDuplicateLootJob.Prefabs.Count));
+                        activeDuplicateLootJob.Prefabs.Count,
+                        reason));
                     aborted = true;
                 }
-                activeDuplicateLootJob = null;
+                if (activeDuplicateLootJob.Finished)
+                    activeDuplicateLootJob = null;
             }
 
             if (activeJob != null)
             {
-                if (!activeJob.Finished)
+                string reason = GetInvalidExecutionReason(activeJob.Request);
+                if (!activeJob.Finished && reason != null)
                 {
                     activeJob.Finished = true;
                     activeJob.ReservedPositions.Clear();
+                    activeJob.EnemyReservations.Clear();
                     Complete(activeJob.Request, string.Format(
-                        "ERROR Host authority was lost; spawn stopped after {0}/{1}.",
+                        "ERROR {2} Spawn stopped after {0}/{1}.",
                         activeJob.Spawned,
-                        activeJob.Requested));
+                        activeJob.Requested,
+                        reason));
                     aborted = true;
                 }
-                activeJob = null;
+                if (activeJob.Finished)
+                    activeJob = null;
             }
 
             return aborted;
+        }
+
+        private static void RefreshPermissionSession()
+        {
+            PermissionService permissions = GetPermissionService();
+            if (permissions != null)
+            {
+                permissions.UpdateSession();
+                PublishPermissionSessionRevision(permissions.SessionRevision);
+            }
+        }
+
+        private static bool HasActiveJob()
+        {
+            return activeBalancedItemJob != null ||
+                activeItemBatchJob != null ||
+                activeDuplicateLootJob != null ||
+                activeJob != null;
+        }
+
+        private static PermissionService GetPermissionService()
+        {
+            return Plugin.Instance != null && Plugin.Instance.CommandConsole != null
+                ? Plugin.Instance.CommandConsole.Permissions
+                : null;
+        }
+
+        private static void BindExecutionContext(ControlRequest request)
+        {
+            if (request.ExecutionContextBound)
+                return;
+
+            PermissionService permissions = GetPermissionService();
+            request.ExecutionStartedInRoom =
+                PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null;
+            request.ExecutionRoomIdentity = PhotonNetwork.CurrentRoom;
+            request.ExecutionMasterActorNumber = PhotonNetwork.MasterClient == null
+                ? -1
+                : PhotonNetwork.MasterClient.ActorNumber;
+            request.ExecutionSessionRevision = permissions == null
+                ? -1
+                : permissions.SessionRevision;
+            request.ExecutionContextBound = true;
+        }
+
+        private static string GetInvalidExecutionReason(ControlRequest request)
+        {
+            if (request == null || !request.ExecutionContextBound)
+                return "The command has no valid execution session.";
+
+            PermissionService permissions = GetPermissionService();
+            string ingressError = CommandIngressSessionPolicy.Validate(
+                request.IsCancelled,
+                request.RequiredSessionRevision,
+                permissions == null ? (long?)null : permissions.SessionRevision);
+            if (ingressError != null)
+                return ingressError;
+
+            if (request.AuthorizationValidator != null)
+            {
+                bool authorized;
+                try
+                {
+                    authorized = request.AuthorizationValidator();
+                }
+                catch
+                {
+                    authorized = false;
+                }
+                if (!authorized)
+                    return "The requester is no longer authorized in this lobby.";
+            }
+
+            if (request.ExecutionStartedInRoom)
+            {
+                if (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom == null)
+                    return "The original multiplayer room closed.";
+                if (!object.ReferenceEquals(
+                    request.ExecutionRoomIdentity,
+                    PhotonNetwork.CurrentRoom))
+                {
+                    return "The multiplayer room changed.";
+                }
+                if (!PhotonNetwork.IsMasterClient)
+                    return "Host authority was lost.";
+                int currentMaster = PhotonNetwork.MasterClient == null
+                    ? -1
+                    : PhotonNetwork.MasterClient.ActorNumber;
+                if (currentMaster != request.ExecutionMasterActorNumber)
+                    return "The lobby host changed.";
+                if (permissions != null &&
+                    request.ExecutionSessionRevision != permissions.SessionRevision)
+                {
+                    return "The multiplayer session changed.";
+                }
+            }
+            else if (request.Source == CommandRequestSource.RemoteClient)
+            {
+                return "Remote commands require their original multiplayer room.";
+            }
+            else if (PhotonNetwork.InRoom)
+            {
+                return "The multiplayer session changed after the command began.";
+            }
+            return null;
         }
 
         private static void Dispatch(ControlRequest request)
@@ -509,10 +747,20 @@ namespace RepoLiveControl
             switch (action)
             {
                 case "enemy":
-                    BeginSpawn(request, SpawnKind.Enemy, parts, 200, "near-player");
+                    BeginSpawn(
+                        request,
+                        SpawnKind.Enemy,
+                        parts,
+                        SlashCommandParser.MaximumCount,
+                        "near-player");
                     return;
                 case "loot":
-                    BeginSpawn(request, SpawnKind.Loot, parts, 200, "safe");
+                    BeginSpawn(
+                        request,
+                        SpawnKind.Loot,
+                        parts,
+                        SlashCommandParser.MaximumCount,
+                        "safe");
                     return;
                 case "item":
                     BeginSpawn(request, SpawnKind.Item, parts, 500, "safe");
@@ -989,11 +1237,12 @@ namespace RepoLiveControl
                     if (job.Spawned >= job.Requested)
                     {
                         job.Finished = true;
+                        string nameSummary = job.NameSummary.Format();
                         string message = string.Format(
                             "OK Spawned {0} {1} object(s){2}.",
                             job.Spawned,
                             job.Kind.ToString().ToLowerInvariant(),
-                            job.Names.Length == 0 ? string.Empty : ": " + job.Names);
+                            nameSummary.Length == 0 ? string.Empty : ": " + nameSummary);
                         Complete(job.Request, message);
                     }
                 }
@@ -1018,7 +1267,15 @@ namespace RepoLiveControl
             Vector3 position;
             if (job.Placement == "safe")
             {
-                position = SemiFunc.EnemyRoamFindPoint(GetPlacement(job));
+                if (!TryFindClearEnemyPosition(
+                    job.Anchor,
+                    job.EnemyReservations,
+                    GetEnemyClearanceVolume(setup),
+                    out position))
+                {
+                    throw new InvalidOperationException(
+                        "No additional collision-free enemy placement was found.");
+                }
             }
             else if (job.Placement == "at-player")
             {
@@ -1034,26 +1291,32 @@ namespace RepoLiveControl
             if (spawned == null || spawned.Count == 0)
                 throw new InvalidOperationException("The enemy setup spawned no objects.");
 
+            var liveSpawned = new List<EnemyParent>();
+            foreach (EnemyParent enemy in spawned)
+            {
+                if (enemy != null)
+                    liveSpawned.Add(enemy);
+            }
+            if (liveSpawned.Count == 0)
+                throw new InvalidOperationException("The enemy setup returned no live objects.");
+
             int needed = job.Requested - job.Spawned;
-            int accepted = Math.Min(needed, spawned.Count);
+            int accepted = CommandExecutionTranslation.AcceptedEnemyCountForSetup(
+                needed,
+                liveSpawned.Count,
+                job.Placement == "safe");
             EnemyDirector director = EnemyDirector.instance;
 
-            for (int index = accepted; index < spawned.Count; index++)
+            for (int index = accepted; index < liveSpawned.Count; index++)
             {
-                EnemyParent extra = spawned[index];
-                if (director != null)
-                    director.enemiesSpawned.Remove(extra);
-                if (extra != null)
-                    PhotonNetwork.Destroy(extra.gameObject);
+                DestroyEnemyInstance(liveSpawned[index], director);
             }
 
             EnemyParent parent = GetEnemyParent(setup);
             string enemyName = parent == null ? "unknown" : parent.enemyName;
             for (int index = 0; index < accepted; index++)
             {
-                EnemyParent acceptedEnemy = spawned[index];
-                if (acceptedEnemy == null)
-                    continue;
+                EnemyParent acceptedEnemy = liveSpawned[index];
                 SpawnedObjects.Add(new SpawnedObjectRecord
                 {
                     Instance = acceptedEnemy.gameObject,
@@ -1064,6 +1327,30 @@ namespace RepoLiveControl
             }
             AppendName(job, enemyName, accepted);
             job.Spawned += accepted;
+        }
+
+        private static void DestroyEnemyInstance(
+            EnemyParent enemy,
+            EnemyDirector director)
+        {
+            if (enemy == null)
+                return;
+            if (director != null)
+            {
+                director.enemiesSpawned.Remove(enemy);
+                LevelPoint firstSpawnPoint = EnemyFirstSpawnPointField == null
+                    ? null
+                    : (LevelPoint)EnemyFirstSpawnPointField.GetValue(enemy);
+                List<LevelPoint> firstSpawnPoints = EnemyFirstSpawnPointsField == null
+                    ? null
+                    : (List<LevelPoint>)EnemyFirstSpawnPointsField.GetValue(director);
+                if (firstSpawnPoint != null && firstSpawnPoints != null)
+                    firstSpawnPoints.Remove(firstSpawnPoint);
+            }
+            if (PhotonNetwork.InRoom)
+                PhotonNetwork.Destroy(enemy.gameObject);
+            else
+                UnityEngine.Object.Destroy(enemy.gameObject);
         }
 
         private static void SpawnLootStep(SpawnJob job)
@@ -1171,6 +1458,8 @@ namespace RepoLiveControl
         {
             LevelGenerator generator = LevelGenerator.Instance;
             List<LevelPoint> levelPoints = generator == null ? null : generator.LevelPathPoints;
+            int collisionMask = EnemyClearancePolicy.BuildGameplaySolidMask(
+                LayerMask.NameToLayer);
 
             for (int attempt = 0; attempt < 500; attempt++)
             {
@@ -1205,7 +1494,7 @@ namespace RepoLiveControl
                     candidate,
                     new Vector3(1.35f, 1.25f, 1.35f),
                     Quaternion.identity,
-                    ~0,
+                    collisionMask,
                     QueryTriggerInteraction.Ignore);
 
                 bool blocked = false;
@@ -1226,6 +1515,283 @@ namespace RepoLiveControl
 
             result = Vector3.zero;
             return false;
+        }
+
+        private static bool TryFindClearEnemyPosition(
+            Vector3 origin,
+            List<EnemyPlacementReservation> reserved,
+            EnemyClearanceVolume clearance,
+            out Vector3 result)
+        {
+            LevelGenerator generator = LevelGenerator.Instance;
+            List<LevelPoint> levelPoints = generator == null ? null : generator.LevelPathPoints;
+            int collisionMask = EnemyClearancePolicy.BuildGameplaySolidMask(
+                LayerMask.NameToLayer);
+            var rejectionCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            for (int attempt = 0; attempt < 500; attempt++)
+            {
+                Vector3 seed;
+                if (levelPoints != null && levelPoints.Count > 0 && attempt % 2 == 0)
+                {
+                    LevelPoint point = levelPoints[UnityEngine.Random.Range(0, levelPoints.Count)];
+                    seed = point.transform.position;
+                }
+                else
+                {
+                    float angle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+                    float radius = UnityEngine.Random.Range(4f, 30f);
+                    seed = origin + new Vector3(
+                        Mathf.Cos(angle),
+                        0f,
+                        Mathf.Sin(angle)) * radius;
+                }
+
+                Vector3 finalRoamPoint = SemiFunc.EnemyRoamFindPoint(seed);
+                bool tooClose = false;
+                foreach (EnemyPlacementReservation existing in reserved)
+                {
+                    float deltaX = finalRoamPoint.x - existing.Position.x;
+                    float deltaZ = finalRoamPoint.z - existing.Position.z;
+                    float minimumDistance =
+                        clearance.HorizontalRadius + existing.HorizontalRadius + 0.5f;
+                    if (deltaX * deltaX + deltaZ * deltaZ <
+                        minimumDistance * minimumDistance)
+                    {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                if (tooClose)
+                    continue;
+
+                Collider[] overlaps = Physics.OverlapBox(
+                    finalRoamPoint + clearance.CenterOffset,
+                    clearance.HalfExtents,
+                    Quaternion.identity,
+                    collisionMask,
+                    QueryTriggerInteraction.Ignore);
+                bool blocked = false;
+                foreach (Collider overlap in overlaps)
+                {
+                    if (overlap != null && !overlap.isTrigger)
+                    {
+                        string layerName = LayerMask.LayerToName(overlap.gameObject.layer);
+                        string rejectionKey =
+                            (string.IsNullOrEmpty(layerName) ?
+                                overlap.gameObject.layer.ToString() : layerName) +
+                            ":" + overlap.name;
+                        int rejectionCount;
+                        rejectionCounts.TryGetValue(rejectionKey, out rejectionCount);
+                        rejectionCounts[rejectionKey] = rejectionCount + 1;
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (blocked)
+                    continue;
+
+                reserved.Add(new EnemyPlacementReservation(
+                    finalRoamPoint,
+                    clearance.HorizontalRadius));
+                result = finalRoamPoint;
+                return true;
+            }
+
+            string rejectionSummary = string.Empty;
+            int rejectionKinds = 0;
+            foreach (KeyValuePair<string, int> rejection in rejectionCounts)
+            {
+                if (rejectionKinds >= 8)
+                    break;
+                if (rejectionSummary.Length > 0)
+                    rejectionSummary += ", ";
+                rejectionSummary += rejection.Key + " x" + rejection.Value;
+                rejectionKinds++;
+            }
+            Plugin.Log.LogWarning(string.Format(
+                "Enemy clearance rejected all candidates. center={0}, halfExtents={1}, " +
+                "radius={2:0.00}, mask={3}, blockers=[{4}]",
+                clearance.CenterOffset,
+                clearance.HalfExtents,
+                clearance.HorizontalRadius,
+                collisionMask,
+                rejectionSummary));
+            result = Vector3.zero;
+            return false;
+        }
+
+        private static EnemyClearanceVolume GetEnemyClearanceVolume(EnemySetup setup)
+        {
+            Vector3 envelopeMin = new Vector3(-0.9f, 0.1f, -0.9f);
+            Vector3 envelopeMax = new Vector3(0.9f, 2.4f, 0.9f);
+            if (setup != null && setup.spawnObjects != null)
+            {
+                foreach (PrefabRef spawnObject in setup.spawnObjects)
+                {
+                    GameObject prefab = spawnObject == null ? null : spawnObject.Prefab;
+                    if (prefab == null)
+                        continue;
+
+                    Bounds aggregate;
+                    if (!TryGetAggregatePrefabBounds(prefab, out aggregate))
+                        continue;
+
+                    Vector3 rootPosition = prefab.transform.position;
+                    envelopeMin = Vector3.Min(envelopeMin, aggregate.min - rootPosition);
+                    envelopeMax = Vector3.Max(envelopeMax, aggregate.max - rootPosition);
+                }
+            }
+
+            Vector3 padding = new Vector3(0.2f, 0.2f, 0.2f);
+            envelopeMin -= padding;
+            envelopeMax += padding;
+            // The roam point is on the navigation floor. Probing below it
+            // makes every valid location overlap the floor collider.
+            envelopeMin.y = EnemyClearancePolicy.ClampProbeBottomOffset(
+                envelopeMin.y);
+            Vector3 centerOffset = (envelopeMin + envelopeMax) * 0.5f;
+            Vector3 halfExtents = (envelopeMax - envelopeMin) * 0.5f;
+            float horizontalX = Mathf.Max(
+                Mathf.Abs(envelopeMin.x),
+                Mathf.Abs(envelopeMax.x));
+            float horizontalZ = Mathf.Max(
+                Mathf.Abs(envelopeMin.z),
+                Mathf.Abs(envelopeMax.z));
+            float horizontalRadius = Mathf.Sqrt(
+                horizontalX * horizontalX + horizontalZ * horizontalZ);
+            return new EnemyClearanceVolume(
+                centerOffset,
+                halfExtents,
+                horizontalRadius);
+        }
+
+        private static bool TryGetAggregatePrefabBounds(
+            GameObject prefab,
+            out Bounds aggregate)
+        {
+            aggregate = new Bounds();
+            bool found = false;
+            // A NavMeshAgent is the vanilla-authored traversal footprint for
+            // an enemy. Prefer it over generic child colliders, which can
+            // include large inactive query helpers unrelated to body size.
+            foreach (NavMeshAgent agent in prefab.GetComponentsInChildren<NavMeshAgent>(true))
+            {
+                if (agent == null)
+                    continue;
+                Vector3 scale = agent.transform.lossyScale;
+                float horizontalScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+                float verticalScale = Mathf.Abs(scale.y);
+                if (!EnemyClearancePolicy.IsNavigationEnvelopeUsable(
+                    agent.radius,
+                    agent.height,
+                    agent.baseOffset,
+                    horizontalScale,
+                    verticalScale))
+                {
+                    continue;
+                }
+
+                float radius = agent.radius * horizontalScale;
+                float height = agent.height * verticalScale;
+                float baseOffset = agent.baseOffset * verticalScale;
+                Bounds navigationBounds = new Bounds(
+                    agent.transform.position +
+                        Vector3.up * (baseOffset + height * 0.5f),
+                    new Vector3(radius * 2f, height, radius * 2f));
+                EncapsulateBounds(ref aggregate, ref found, navigationBounds);
+            }
+            if (found && HasUsableBounds(aggregate))
+                return true;
+
+            aggregate = new Bounds();
+            found = false;
+            foreach (Collider collider in prefab.GetComponentsInChildren<Collider>(true))
+            {
+                if (collider == null ||
+                    !EnemyClearancePolicy.IsBodyGeometryEligible(
+                        collider.enabled,
+                        collider.isTrigger,
+                        IsActiveInPrefabHierarchy(collider.transform, prefab.transform),
+                        collider.attachedRigidbody != null))
+                    continue;
+                Bounds colliderBounds = collider.bounds;
+                if (HasUsableBounds(colliderBounds))
+                    EncapsulateBounds(ref aggregate, ref found, colliderBounds);
+            }
+
+            if (found && !HasUsableBounds(aggregate))
+            {
+                aggregate = new Bounds();
+                found = false;
+            }
+
+            if (!found)
+            {
+                foreach (Renderer renderer in prefab.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (renderer == null ||
+                        !EnemyClearancePolicy.IsBodyGeometryEligible(
+                            renderer.enabled,
+                            false,
+                            IsActiveInPrefabHierarchy(renderer.transform, prefab.transform),
+                            false))
+                        continue;
+                    Bounds rendererBounds = renderer.bounds;
+                    if (HasUsableBounds(rendererBounds))
+                        EncapsulateBounds(ref aggregate, ref found, rendererBounds);
+                }
+            }
+            return found && HasUsableBounds(aggregate);
+        }
+
+        private static bool IsActiveInPrefabHierarchy(
+            Transform componentTransform,
+            Transform prefabRoot)
+        {
+            if (componentTransform == null || prefabRoot == null)
+                return false;
+
+            Transform current = componentTransform;
+            while (current != null)
+            {
+                if (!current.gameObject.activeSelf)
+                    return false;
+                if (current == prefabRoot)
+                    return true;
+                current = current.parent;
+            }
+            return false;
+        }
+
+        private static bool HasUsableBounds(Bounds candidate)
+        {
+            Vector3 center = candidate.center;
+            Vector3 size = candidate.size;
+            if (float.IsNaN(center.x) || float.IsInfinity(center.x) ||
+                float.IsNaN(center.y) || float.IsInfinity(center.y) ||
+                float.IsNaN(center.z) || float.IsInfinity(center.z) ||
+                float.IsNaN(size.x) || float.IsInfinity(size.x) ||
+                float.IsNaN(size.y) || float.IsInfinity(size.y) ||
+                float.IsNaN(size.z) || float.IsInfinity(size.z))
+            {
+                return false;
+            }
+            return size.sqrMagnitude > 0.000001f;
+        }
+
+        private static void EncapsulateBounds(
+            ref Bounds aggregate,
+            ref bool found,
+            Bounds candidate)
+        {
+            if (!found)
+            {
+                aggregate = candidate;
+                found = true;
+                return;
+            }
+            aggregate.Encapsulate(candidate);
         }
 
         private static void DespawnEnemies(ControlRequest request, string selector, int keep)
@@ -1356,12 +1922,17 @@ namespace RepoLiveControl
             if (record == null || record.Instance == null)
                 return;
 
-            if (record.Kind == SpawnKind.Enemy && EnemyDirector.instance != null)
+            if (record.Kind == SpawnKind.Enemy)
             {
                 EnemyParent enemy = record.Instance.GetComponent<EnemyParent>() ??
                     record.Instance.GetComponentInChildren<EnemyParent>();
                 if (enemy != null)
-                    EnemyDirector.instance.enemiesSpawned.Remove(enemy);
+                {
+                    // Keep the director's enemy and first-spawn-point ledgers in
+                    // sync just as grouped-overage cleanup does.
+                    DestroyEnemyInstance(enemy, EnemyDirector.instance);
+                    return;
+                }
             }
             else if (record.Kind == SpawnKind.Loot && ValuableDirector.instance != null)
             {
@@ -1860,12 +2431,7 @@ namespace RepoLiveControl
 
         private static void AppendName(SpawnJob job, string name, int count)
         {
-            for (int index = 0; index < count; index++)
-            {
-                if (job.Names.Length > 0)
-                    job.Names += ", ";
-                job.Names += name;
-            }
+            job.NameSummary.Add(name, count);
         }
 
         internal static void Complete(ControlRequest request, string result)

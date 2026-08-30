@@ -7,58 +7,20 @@ param(
     [string] $RepoProfilePath = (Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'Thunderstore Mod Manager\DataFolder\REPO\profiles\modded'),
 
     [Parameter()]
-    [switch] $QuarantineLegacyPlugins
+    [switch] $QuarantineLegacyPlugins,
+
+    [Parameter(DontShow)]
+    [switch] $SkipRunningGameCheck
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Resolve-ExistingAbsoluteDirectory {
-    param(
-        [Parameter(Mandatory)]
-        [string] $Path,
-
-        [Parameter(Mandatory)]
-        [string] $Label
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        throw "$Label cannot be empty."
-    }
-
-    if (-not [System.IO.Path]::IsPathFullyQualified($Path)) {
-        throw "$Label must be an absolute path: $Path"
-    }
-
-    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
-        throw "$Label does not exist or is not a directory: $Path"
-    }
-
-    return (Resolve-Path -LiteralPath $Path).ProviderPath
+$commonScriptPath = Join-Path $PSScriptRoot 'PowerShell.Common.ps1'
+if (-not (Test-Path -LiteralPath $commonScriptPath -PathType Leaf)) {
+    throw "PowerShell compatibility helpers were not found: $commonScriptPath"
 }
-
-function Assert-PathWithin {
-    param(
-        [Parameter(Mandatory)]
-        [string] $Path,
-
-        [Parameter(Mandatory)]
-        [string] $ParentPath,
-
-        [Parameter(Mandatory)]
-        [string] $Label
-    )
-
-    $fullPath = [System.IO.Path]::GetFullPath($Path)
-    $fullParent = [System.IO.Path]::GetFullPath($ParentPath).TrimEnd(
-        [System.IO.Path]::DirectorySeparatorChar,
-        [System.IO.Path]::AltDirectorySeparatorChar)
-    $requiredPrefix = $fullParent + [System.IO.Path]::DirectorySeparatorChar
-
-    if (-not $fullPath.StartsWith($requiredPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "$Label is outside the expected directory '$fullParent': $fullPath"
-    }
-}
+. $commonScriptPath
 
 function Invoke-DotNet {
     param(
@@ -86,6 +48,14 @@ if (-not (Test-Path -LiteralPath $managedPath -PathType Container)) {
 
 if (-not (Test-Path -LiteralPath $bepInExPath -PathType Container)) {
     throw "The selected profile does not contain BepInEx: $bepInExPath"
+}
+
+if (-not $SkipRunningGameCheck) {
+    $runningGameProcesses = @(Get-Process -Name 'REPO' -ErrorAction SilentlyContinue)
+    if ($runningGameProcesses.Count -gt 0) {
+        $runningProcessIds = @($runningGameProcesses | ForEach-Object Id) -join ', '
+        throw "R.E.P.O. is running (PID: $runningProcessIds). Exit the game completely before installing a rebuilt DLL, then run this command again."
+    }
 }
 
 $projectPath = Join-Path $repositoryRoot 'src\RepoLiveControl\RepoLiveControl.csproj'
@@ -132,7 +102,10 @@ if ($QuarantineLegacyPlugins) {
                 throw "Refusing to quarantine an unexpected file: $sourcePath"
             }
 
-            $relativePath = [System.IO.Path]::GetRelativePath($profilePath, $sourcePath)
+            $relativePath = Get-RelativePathWithin `
+                -Path $sourcePath `
+                -ParentPath $profilePath `
+                -Label 'Legacy plugin relative path'
             $destinationPath = [System.IO.Path]::GetFullPath((Join-Path $quarantinePath $relativePath))
             Assert-PathWithin -Path $destinationPath -ParentPath $quarantinePath -Label 'Legacy plugin quarantine destination'
             [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($destinationPath)) | Out-Null

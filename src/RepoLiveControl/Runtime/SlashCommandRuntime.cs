@@ -58,19 +58,11 @@ namespace RepoLiveControl.Runtime
                 return false;
             }
 
-            string action;
-            if (target.Kind == CommandEntityKind.Enemy)
-                action = "enemy";
-            else if (target.Kind == CommandEntityKind.Valuable)
-                action = "loot";
-            else
-                action = "item";
-
-            string placement = command.Location == CommandLocations.RandomNonCollisionLocation
-                ? "safe"
-                : "at-player";
-            translated = action + "|" + target.Name + "|" +
-                         command.Count.Value + "|" + placement;
+            translated = CommandExecutionTranslation.TranslateSpawn(
+                ToCommandTargetKind(target.Kind),
+                target.Name,
+                command.Count.Value,
+                command.Location);
             return true;
         }
 
@@ -88,9 +80,22 @@ namespace RepoLiveControl.Runtime
                 return false;
             }
 
-            string count = command.Count.HasValue ? command.Count.Value.ToString() : "-1";
-            translated = "despawnspawned|" + target.KindName + "|" + target.Name + "|" + count;
+            translated = CommandExecutionTranslation.TranslateDespawn(
+                ToCommandTargetKind(target.Kind),
+                target.Name,
+                command.Count);
             return true;
+        }
+
+        private static CommandTargetKind ToCommandTargetKind(CommandEntityKind kind)
+        {
+            if (kind == CommandEntityKind.Item)
+                return CommandTargetKind.Item;
+            if (kind == CommandEntityKind.Valuable)
+                return CommandTargetKind.Valuable;
+            if (kind == CommandEntityKind.Enemy)
+                return CommandTargetKind.Enemy;
+            return CommandTargetKind.Unspecified;
         }
 
         private static void Grant(ControlRequest request, string player)

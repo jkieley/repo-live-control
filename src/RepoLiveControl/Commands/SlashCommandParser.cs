@@ -83,30 +83,35 @@ namespace RepoLiveControl.Commands
                 return TooMany("Spawn accepts a target, optional count, and optional location.");
 
             int count = 1;
+            string location = CommandLocations.PlayerLocation;
             if (tokens.Count >= 3)
             {
-                CommandParseResult countError = TryParseCount(tokens[2].Value, false, out count);
-                if (countError != null)
-                    return countError;
+                string secondArgument = tokens[2].Value;
+                string locationWithoutCount;
+                if (TryNormalizeLocation(secondArgument, out locationWithoutCount))
+                {
+                    location = locationWithoutCount;
+                    if (tokens.Count >= 4)
+                    {
+                        return TooMany(
+                            "When count is omitted, spawn location must be the final argument.");
+                    }
+                }
+                else
+                {
+                    CommandParseResult countError = TryParseCount(
+                        secondArgument,
+                        false,
+                        out count);
+                    if (countError != null)
+                        return countError;
+                }
             }
 
-            string location = CommandLocations.PlayerLocation;
             if (tokens.Count >= 4)
             {
                 string requestedLocation = tokens[3].Value;
-                if (requestedLocation.Equals(
-                    CommandLocations.PlayerLocation,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    location = CommandLocations.PlayerLocation;
-                }
-                else if (requestedLocation.Equals(
-                    CommandLocations.RandomNonCollisionLocation,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    location = CommandLocations.RandomNonCollisionLocation;
-                }
-                else
+                if (!TryNormalizeLocation(requestedLocation, out location))
                 {
                     return Failure(
                         CommandParseErrorCode.InvalidLocation,
@@ -121,6 +126,28 @@ namespace RepoLiveControl.Commands
                 count,
                 location,
                 null));
+        }
+
+        private static bool TryNormalizeLocation(string value, out string location)
+        {
+            if (value.Equals(
+                CommandLocations.PlayerLocation,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                location = CommandLocations.PlayerLocation;
+                return true;
+            }
+
+            if (value.Equals(
+                CommandLocations.RandomNonCollisionLocation,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                location = CommandLocations.RandomNonCollisionLocation;
+                return true;
+            }
+
+            location = null;
+            return false;
         }
 
         private static CommandParseResult ParseDespawn(IReadOnlyList<CommandToken> tokens)

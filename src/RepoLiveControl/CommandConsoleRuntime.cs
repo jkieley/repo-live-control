@@ -6,6 +6,7 @@ using RepoLiveControl.Commands;
 using RepoLiveControl.Networking;
 using RepoLiveControl.Runtime;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace RepoLiveControl
 {
@@ -19,6 +20,7 @@ namespace RepoLiveControl
         private readonly ConfigEntry<KeyCode> toggleKey;
         private readonly ConfigEntry<int> networkEventCode;
         private readonly List<string> history = new List<string>();
+        private readonly ConsoleInputGate inputGate = new ConsoleInputGate();
 
         private Rect windowRect;
         private string input = "/";
@@ -34,6 +36,7 @@ namespace RepoLiveControl
         private bool stylesReady;
         private bool localPermissionKnown;
         private bool localPermissionGranted;
+        private long observedPermissionSessionRevision;
         private float catalogRefreshAt;
 
         private GUIStyle windowStyle;
@@ -68,6 +71,7 @@ namespace RepoLiveControl
             }
 
             Permissions = new PermissionService();
+            observedPermissionSessionRevision = Permissions.SessionRevision;
             Network = new CommandNetworkRouter(
                 (byte)configuredCode,
                 Permissions,
@@ -83,9 +87,21 @@ namespace RepoLiveControl
 
         internal void Update()
         {
-            Permissions.UpdateSession();
+            Network.Update(IsNetworkSessionSceneActive());
+            Bridge.PublishPermissionSessionRevision(Permissions.SessionRevision);
+            if (observedPermissionSessionRevision != Permissions.SessionRevision)
+            {
+                observedPermissionSessionRevision = Permissions.SessionRevision;
+                localPermissionKnown = false;
+                localPermissionGranted = false;
+            }
 
-            if (Input.GetKeyDown(toggleKey.Value))
+            if (inputGate.TryAccept(
+                ConsoleInputAction.Toggle,
+                Time.frameCount,
+                Input.GetKeyDown(toggleKey.Value),
+                IsInputSystemKeyPressedThisFrame(toggleKey.Value),
+                false))
             {
                 SetOpen(!open);
                 return;
@@ -94,10 +110,31 @@ namespace RepoLiveControl
             if (!open)
                 return;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (TryAcceptInputAction(ConsoleInputAction.Close, KeyCode.Escape))
             {
                 SetOpen(false);
                 return;
+            }
+
+            if (TryAcceptInputAction(ConsoleInputAction.AcceptCompletion, KeyCode.Tab))
+                AcceptSelectedSuggestion(true);
+            else if (TryAcceptInputAction(ConsoleInputAction.SelectPrevious, KeyCode.UpArrow) &&
+                     suggestions.Count > 0)
+            {
+                selectedSuggestion =
+                    (selectedSuggestion - 1 + suggestions.Count) % suggestions.Count;
+            }
+            else if (TryAcceptInputAction(ConsoleInputAction.SelectNext, KeyCode.DownArrow) &&
+                     suggestions.Count > 0)
+            {
+                selectedSuggestion = (selectedSuggestion + 1) % suggestions.Count;
+            }
+            else if (TryAcceptInputAction(
+                         ConsoleInputAction.Submit,
+                         KeyCode.Return,
+                         KeyCode.KeypadEnter))
+            {
+                SubmitInput();
             }
 
             try
@@ -130,7 +167,10 @@ namespace RepoLiveControl
             EnsureStyles();
             float width = Mathf.Min(900f, Mathf.Max(540f, Screen.width - 40f));
             windowRect.width = width;
-            windowRect.height = Mathf.Min(560f, Mathf.Max(440f, Screen.height - 120f));
+            // Eight completion rows plus the result/history panes need a little
+            // more than 560 px. Keep the action row visible at the maximum
+            // completion count instead of clipping it below the window.
+            windowRect.height = Mathf.Min(600f, Mathf.Max(440f, Screen.height - 120f));
             windowRect.x = Mathf.Clamp(windowRect.x, 10f, Mathf.Max(10f, Screen.width - width - 10f));
             windowRect.y = Mathf.Clamp(windowRect.y, 10f, Mathf.Max(10f, Screen.height - windowRect.height - 10f));
             if (windowRect.x <= 0f)
@@ -216,7 +256,11 @@ namespace RepoLiveControl
 
             GUILayout.FlexibleSpace();
             GUILayout.Label("RESULT", hintStyle);
-            GUILayout.Label(result, resultStyle, GUILayout.MinHeight(48f));
+            GUILayout.Label(
+                result,
+                resultStyle,
+                GUILayout.MinHeight(48f),
+                GUILayout.MaxHeight(72f));
             if (history.Count > 0)
                 GUILayout.Label(string.Join("\n", history.ToArray()), hintStyle, GUILayout.MaxHeight(72f));
 
@@ -235,6 +279,8 @@ namespace RepoLiveControl
                 RefreshSuggestions();
                 focusInput = true;
             }
+            if (GUILayout.Button("Run", GUILayout.Height(30f)))
+                SubmitInput();
             if (GUILayout.Button("Close", GUILayout.Height(30f)))
                 SetOpen(false);
             GUILayout.EndHorizontal();
@@ -247,32 +293,113 @@ namespace RepoLiveControl
             if (current == null || current.type != EventType.KeyDown)
                 return;
 
-            if (current.keyCode == KeyCode.Tab)
+            // Every action also has legacy and Input System paths in Update.
+            // The per-action gate prevents this IMGUI fallback from firing the
+            // same input twice when more than one backend sees the key edge.
+            if (current.keyCode == toggleKey.Value)
             {
-                AcceptSelectedSuggestion(true);
-                current.Use();
-            }
-            else if (current.keyCode == KeyCode.UpArrow && suggestions.Count > 0)
-            {
-                selectedSuggestion =
-                    (selectedSuggestion - 1 + suggestions.Count) % suggestions.Count;
-                current.Use();
-            }
-            else if (current.keyCode == KeyCode.DownArrow && suggestions.Count > 0)
-            {
-                selectedSuggestion = (selectedSuggestion + 1) % suggestions.Count;
-                current.Use();
-            }
-            else if (current.keyCode == KeyCode.Return || current.keyCode == KeyCode.KeypadEnter)
-            {
-                SubmitInput();
+                if (inputGate.TryAccept(
+                    ConsoleInputAction.Toggle,
+                    Time.frameCount,
+                    false,
+                    false,
+                    true))
+                {
+                    SetOpen(!open);
+                }
                 current.Use();
             }
             else if (current.keyCode == KeyCode.Escape)
             {
-                SetOpen(false);
+                if (AcceptGuiInput(ConsoleInputAction.Close))
+                    SetOpen(false);
                 current.Use();
             }
+            else if (current.keyCode == KeyCode.Tab)
+            {
+                if (AcceptGuiInput(ConsoleInputAction.AcceptCompletion))
+                    AcceptSelectedSuggestion(true);
+                current.Use();
+            }
+            else if (current.keyCode == KeyCode.UpArrow && suggestions.Count > 0)
+            {
+                if (AcceptGuiInput(ConsoleInputAction.SelectPrevious))
+                {
+                    selectedSuggestion =
+                        (selectedSuggestion - 1 + suggestions.Count) % suggestions.Count;
+                }
+                current.Use();
+            }
+            else if (current.keyCode == KeyCode.DownArrow && suggestions.Count > 0)
+            {
+                if (AcceptGuiInput(ConsoleInputAction.SelectNext))
+                    selectedSuggestion = (selectedSuggestion + 1) % suggestions.Count;
+                current.Use();
+            }
+            else if (current.keyCode == KeyCode.Return || current.keyCode == KeyCode.KeypadEnter)
+            {
+                if (AcceptGuiInput(ConsoleInputAction.Submit))
+                    SubmitInput();
+                current.Use();
+            }
+        }
+
+        private static bool IsNetworkSessionSceneActive()
+        {
+            RunManager runManager = RunManager.instance;
+            if (runManager == null)
+            {
+                return NetworkSessionSceneActivationPolicy.ShouldActivate(
+                    false, false, false, false, false, false);
+            }
+
+            Level current = runManager.levelCurrent;
+            if (current == null)
+            {
+                return NetworkSessionSceneActivationPolicy.ShouldActivate(
+                    true, false, false, false, false, false);
+            }
+
+            return NetworkSessionSceneActivationPolicy.ShouldActivate(
+                true,
+                true,
+                current == runManager.levelLobby,
+                ContainsLevel(runManager.levels, current),
+                ContainsLevel(runManager.levelShop, current),
+                ContainsLevel(runManager.levelArena, current));
+        }
+
+        private static bool ContainsLevel(IList<Level> levels, Level current)
+        {
+            return levels != null && levels.Contains(current);
+        }
+
+        private bool TryAcceptInputAction(
+            ConsoleInputAction action,
+            KeyCode primaryKey,
+            KeyCode secondaryKey = KeyCode.None)
+        {
+            bool legacyPressed = Input.GetKeyDown(primaryKey) ||
+                (secondaryKey != KeyCode.None && Input.GetKeyDown(secondaryKey));
+            bool inputSystemPressed = IsInputSystemKeyPressedThisFrame(primaryKey) ||
+                (secondaryKey != KeyCode.None &&
+                 IsInputSystemKeyPressedThisFrame(secondaryKey));
+            return inputGate.TryAccept(
+                action,
+                Time.frameCount,
+                legacyPressed,
+                inputSystemPressed,
+                false);
+        }
+
+        private bool AcceptGuiInput(ConsoleInputAction action)
+        {
+            return inputGate.TryAccept(
+                action,
+                Time.frameCount,
+                false,
+                false,
+                true);
         }
 
         private void SubmitInput()
@@ -296,11 +423,14 @@ namespace RepoLiveControl
                     int actorNumber = PhotonNetwork.InRoom && PhotonNetwork.LocalPlayer != null
                         ? PhotonNetwork.LocalPlayer.ActorNumber
                         : -1;
+                    long requiredSessionRevision = Permissions.SessionRevision;
                     Bridge.Enqueue(new ControlRequest(
                         command,
                         CommandRequestSource.LocalConsole,
                         actorNumber,
-                        SetResult));
+                        SetResult,
+                        requiredSessionRevision,
+                        () => Permissions.SessionRevision == requiredSessionRevision));
                 }
                 else
                 {
@@ -361,14 +491,20 @@ namespace RepoLiveControl
 
         private void RefreshCatalog()
         {
-            var players = new List<string>();
-            players.AddRange(Permissions.GetGrantCandidates());
-            foreach (string candidate in Permissions.GetRevokeCandidates())
+            var grantPlayers = new List<string>();
+            var revokePlayers = new List<string>();
+            bool canManagePermissions =
+                !PhotonNetwork.InRoom || PhotonNetwork.IsMasterClient;
+            if (canManagePermissions)
             {
-                if (!players.Contains(candidate))
-                    players.Add(candidate);
+                grantPlayers.AddRange(Permissions.GetGrantCandidates());
+                revokePlayers.AddRange(Permissions.GetRevokeCandidates());
             }
-            catalog = new CompletionCatalog(RuntimeTargetCatalog.GetSelectors(true), players);
+            catalog = new CompletionCatalog(
+                RuntimeTargetCatalog.GetSelectors(true),
+                grantPlayers,
+                revokePlayers,
+                canManagePermissions);
             RefreshSuggestions();
         }
 
@@ -442,6 +578,26 @@ namespace RepoLiveControl
             return GUIUtility.GetStateObject(
                 typeof(TextEditor),
                 GUIUtility.keyboardControl) as TextEditor;
+        }
+
+        private static bool IsInputSystemKeyPressedThisFrame(KeyCode keyCode)
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+                return false;
+
+            Key inputSystemKey;
+            if (!Enum.TryParse(
+                    ConsoleToggleKeyMapping.ToInputSystemKeyName(keyCode.ToString()),
+                    true,
+                    out inputSystemKey) ||
+                inputSystemKey == Key.None)
+            {
+                return false;
+            }
+
+            return keyboard[inputSystemKey] != null &&
+                   keyboard[inputSystemKey].wasPressedThisFrame;
         }
 
         private void ReleaseGuiFocusIfRequested()

@@ -10,6 +10,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$commonScriptPath = Join-Path $PSScriptRoot 'PowerShell.Common.ps1'
+if (-not (Test-Path -LiteralPath $commonScriptPath -PathType Leaf)) {
+    throw "PowerShell compatibility helpers were not found: $commonScriptPath"
+}
+. $commonScriptPath
+
 $PackageName = 'RepoCommandConsole'
 $PackageVersion = '2.0.0'
 $PackageFileName = "JamesKieley-$PackageName-$PackageVersion.zip"
@@ -18,53 +24,6 @@ $ExpectedDependencies = @(
     'BepInEx-BepInExPack-5.4.2305',
     'Zehs-REPOLib-4.2.0'
 )
-
-function Resolve-ExistingAbsoluteDirectory {
-    param(
-        [Parameter(Mandatory)]
-        [string] $Path,
-
-        [Parameter(Mandatory)]
-        [string] $Label
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        throw "$Label cannot be empty."
-    }
-
-    if (-not [System.IO.Path]::IsPathFullyQualified($Path)) {
-        throw "$Label must be an absolute path: $Path"
-    }
-
-    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
-        throw "$Label does not exist or is not a directory: $Path"
-    }
-
-    return (Resolve-Path -LiteralPath $Path).ProviderPath
-}
-
-function Assert-PathWithin {
-    param(
-        [Parameter(Mandatory)]
-        [string] $Path,
-
-        [Parameter(Mandatory)]
-        [string] $ParentPath,
-
-        [Parameter(Mandatory)]
-        [string] $Label
-    )
-
-    $fullPath = [System.IO.Path]::GetFullPath($Path)
-    $fullParent = [System.IO.Path]::GetFullPath($ParentPath).TrimEnd(
-        [System.IO.Path]::DirectorySeparatorChar,
-        [System.IO.Path]::AltDirectorySeparatorChar)
-    $requiredPrefix = $fullParent + [System.IO.Path]::DirectorySeparatorChar
-
-    if (-not $fullPath.StartsWith($requiredPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "$Label is outside the expected directory '$fullParent': $fullPath"
-    }
-}
 
 function Invoke-DotNet {
     param(

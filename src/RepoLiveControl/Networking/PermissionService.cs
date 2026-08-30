@@ -7,15 +7,15 @@ namespace RepoLiveControl.Networking
 {
     internal sealed class PermissionService
     {
-        private readonly HashSet<int> grantedActors = new HashSet<int>();
-        private string roomName = string.Empty;
-        private int masterActorNumber = -1;
+        private readonly SessionGrantLedger grants = new SessionGrantLedger();
+
+        internal long SessionRevision { get { return grants.Revision; } }
 
         internal void UpdateSession()
         {
             if (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom == null)
             {
-                Reset();
+                grants.Synchronize(false, string.Empty, -1, new int[0]);
                 return;
             }
 
@@ -23,29 +23,16 @@ namespace RepoLiveControl.Networking
             int currentMaster = PhotonNetwork.MasterClient == null
                 ? -1
                 : PhotonNetwork.MasterClient.ActorNumber;
-            if (!string.Equals(roomName, currentRoomName, StringComparison.Ordinal) ||
-                masterActorNumber != currentMaster)
-            {
-                grantedActors.Clear();
-                roomName = currentRoomName;
-                masterActorNumber = currentMaster;
-            }
-
-            var departed = new List<int>();
-            foreach (int actorNumber in grantedActors)
-            {
-                if (!PhotonNetwork.CurrentRoom.Players.ContainsKey(actorNumber))
-                    departed.Add(actorNumber);
-            }
-            foreach (int actorNumber in departed)
-                grantedActors.Remove(actorNumber);
+            grants.Synchronize(
+                true,
+                currentRoomName,
+                currentMaster,
+                PhotonNetwork.CurrentRoom.Players.Keys);
         }
 
         internal void Reset()
         {
-            grantedActors.Clear();
-            roomName = string.Empty;
-            masterActorNumber = -1;
+            grants.Synchronize(false, string.Empty, -1, new int[0]);
         }
 
         internal bool IsAllowed(int actorNumber)
@@ -58,12 +45,12 @@ namespace RepoLiveControl.Networking
             Player player;
             if (!PhotonNetwork.CurrentRoom.Players.TryGetValue(actorNumber, out player) || player == null)
                 return false;
-            return player.IsMasterClient || grantedActors.Contains(actorNumber);
+            return player.IsMasterClient || grants.IsGranted(actorNumber);
         }
 
         internal bool IsGranted(int actorNumber)
         {
-            return grantedActors.Contains(actorNumber);
+            return grants.IsGranted(actorNumber);
         }
 
         internal bool TryGrant(string selector, out int actorNumber, out string message)
@@ -76,7 +63,7 @@ namespace RepoLiveControl.Networking
             }
 
             actorNumber = player.ActorNumber;
-            if (grantedActors.Add(actorNumber))
+            if (grants.Grant(actorNumber))
                 message = "OK Granted command permission to " + PlayerLabel(player) + ".";
             else
                 message = "OK " + PlayerLabel(player) + " already has command permission.";
@@ -93,7 +80,7 @@ namespace RepoLiveControl.Networking
             }
 
             actorNumber = player.ActorNumber;
-            if (grantedActors.Remove(actorNumber))
+            if (grants.Revoke(actorNumber))
                 message = "OK Revoked command permission from " + PlayerLabel(player) + ".";
             else
                 message = "OK " + PlayerLabel(player) + " did not have command permission.";
@@ -106,7 +93,7 @@ namespace RepoLiveControl.Networking
                 return "OK Permissions: single player/local host; no grants are required.";
 
             var labels = new List<string>();
-            foreach (int actorNumber in grantedActors)
+            foreach (int actorNumber in grants.GetGrantedActors())
             {
                 Player player;
                 if (PhotonNetwork.CurrentRoom.Players.TryGetValue(actorNumber, out player) && player != null)
@@ -136,7 +123,7 @@ namespace RepoLiveControl.Networking
 
             foreach (Player player in PhotonNetwork.PlayerListOthers)
             {
-                if (player == null || (grantedOnly && !grantedActors.Contains(player.ActorNumber)))
+                if (player == null || (grantedOnly && !grants.IsGranted(player.ActorNumber)))
                     continue;
                 values.Add(PlayerSelector(player));
             }
@@ -165,7 +152,7 @@ namespace RepoLiveControl.Networking
                 Player byActor;
                 if (PhotonNetwork.CurrentRoom.Players.TryGetValue(requestedActor, out byActor) &&
                     byActor != null && !byActor.IsMasterClient &&
-                    (!grantedOnly || grantedActors.Contains(requestedActor)))
+                    (!grantedOnly || grants.IsGranted(requestedActor)))
                 {
                     selected = byActor;
                     return true;
@@ -178,7 +165,7 @@ namespace RepoLiveControl.Networking
             var partial = new List<Player>();
             foreach (Player player in PhotonNetwork.PlayerListOthers)
             {
-                if (player == null || (grantedOnly && !grantedActors.Contains(player.ActorNumber)))
+                if (player == null || (grantedOnly && !grants.IsGranted(player.ActorNumber)))
                     continue;
                 string nickname = player.NickName ?? string.Empty;
                 if (nickname.Equals(query, StringComparison.OrdinalIgnoreCase))
