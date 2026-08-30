@@ -141,7 +141,7 @@ try {
     $installCalls = @(Get-Content -LiteralPath $stubLog | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     Assert-True ($installCalls.Count -eq 1) "Expected one dotnet call from Install-Local.ps1; found $($installCalls.Count)."
 
-    $installedDll = Join-Path $fixtureBepInEx 'plugins\JamesKieley-RepoCommandConsole\RepoCommandConsole.dll'
+    $installedDll = Join-Path $fixtureBepInEx 'plugins\Coollectors-RepoCommandConsole\RepoCommandConsole.dll'
     Assert-True (Test-Path -LiteralPath $installedDll -PathType Leaf) 'Install-Local.ps1 did not install the DLL in the fixture profile.'
     Assert-True (
         ((Get-FileHash -LiteralPath $fixtureDll -Algorithm SHA256).Hash -eq

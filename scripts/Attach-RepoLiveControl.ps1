@@ -36,7 +36,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $built = Join-Path $repoRoot "src\RepoLiveControl\bin\Release\netstandard2.1\RepoCommandConsole.dll"
-$pluginDir = Join-Path $ProfilePath "BepInEx\plugins\JamesKieley-RepoCommandConsole"
+$pluginDir = Join-Path $ProfilePath "BepInEx\plugins\Coollectors-RepoCommandConsole"
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
 $installed = Join-Path $pluginDir "RepoCommandConsole.dll"
 Copy-Item -LiteralPath $built -Destination $installed -Force

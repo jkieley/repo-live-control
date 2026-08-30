@@ -120,7 +120,7 @@ if ($QuarantineLegacyPlugins) {
     }
 }
 
-$installPath = [System.IO.Path]::GetFullPath((Join-Path $pluginsPath 'JamesKieley-RepoCommandConsole'))
+$installPath = [System.IO.Path]::GetFullPath((Join-Path $pluginsPath 'Coollectors-RepoCommandConsole'))
 Assert-PathWithin -Path $installPath -ParentPath $pluginsPath -Label 'Mod install directory'
 [System.IO.Directory]::CreateDirectory($installPath) | Out-Null
 
