@@ -124,6 +124,15 @@ if (-not (Test-Path -LiteralPath $releaseDll -PathType Leaf)) {
     throw "Release build did not produce the expected DLL: $releaseDll"
 }
 
+Write-Host 'Checking compiled enemy placement routing and installed navigation APIs...'
+Invoke-DotNet -Arguments @(
+    'run', '--project',
+    (Join-Path $repositoryRoot 'tests\RepoLiveControl.EnemyPlacementContractTests\RepoLiveControl.EnemyPlacementContractTests.csproj'),
+    '--configuration', 'Release',
+    "-p:RepoProfilePath=$profilePath",
+    '--', $releaseDll, $gamePath
+)
+
 Write-Host 'Checking thumbnail isolation and installed rendering APIs against the Release build...'
 Invoke-DotNet -Arguments @(
     'run',
@@ -138,4 +147,4 @@ Invoke-DotNet -Arguments @(
     $releaseDll
 )
 
-Write-Host "PASS: command/network, player API, catalog, thumbnail safety tests and Release build completed: $releaseDll"
+Write-Host "PASS: command/network, player API, catalog, enemy placement, thumbnail safety tests and Release build completed: $releaseDll"

@@ -76,12 +76,15 @@ Check(Core("UnityEngine.Rendering.CommandBuffer").Methods.Any(method => method.N
       "Offscreen view/projection API is unavailable.");
 var materialFactory = service.Methods.Single(method => method.Name == "MakePreviewMaterial");
 Check(materialFactory.Body.Instructions.Any(instruction => instruction.OpCode == OpCodes.Ldstr &&
-      (string)instruction.Operand == "Particles/Standard Unlit"),
-      "Mesh preview material must use a tint-capable depth-writing shader before sprite fallbacks.");
-byte[] sharedAssets = File.ReadAllBytes(Path.Combine(game, "REPO_Data", "sharedassets0.assets"));
-byte[] shaderName = System.Text.Encoding.UTF8.GetBytes("Particles/Standard Unlit");
-Check(sharedAssets.AsSpan().IndexOf(shaderName) >= 0,
-      "The selected mesh preview shader is no longer present in the shipped assets; review shader availability.");
+      (string)instruction.Operand == "Standard"),
+      "Mesh previews must use the forward shader verified against GPU-only game meshes.");
+Check(materialFactory.Body.Instructions.Any(instruction => instruction.OpCode == OpCodes.Ldstr &&
+      (string)instruction.Operand == "_EmissionMap"),
+      "Preview albedo must remain readable without altering the scene lighting.");
+Check(calls.Any(call => call.Name == "FindPassTagValue"),
+      "Mesh draws must select the forward color pass instead of a shadow/grab pass.");
+Check(!calls.Any(call => call.DeclaringType.FullName == "UnityEngine.Shader" && call.Name.StartsWith("SetGlobal")),
+      "Preview lighting must not mutate global game shader state.");
 var attributes = gameAssembly.MainModule.Types.Single(type => type.Name == "ItemAttributes");
 Check(attributes.Fields.Any(field => field.Name == "icon" && field.IsPublic && field.FieldType.Name == "Sprite"),
       "Native item icon field changed.");

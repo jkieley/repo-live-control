@@ -89,4 +89,25 @@ RunManager.instance = null;
 Resources.Values.Clear();
 Check(RuntimeTargetCatalog.GetValuables().Count == 0, "A stale resource cache must not survive the loss of its RunManager.");
 
-Console.WriteLine($"PASS {checks} production catalog coverage, alias, validation, preview identity, and session-cache checks.");
+// Execute the actual player-location finder against controlled native NavMesh responses.
+// A local placement must not turn a failed query into a far-away or zero fallback.
+var anchor = new Vector3(10, 1, 20);
+UnityEngine.AI.NavMesh.Calls.Clear();
+UnityEngine.AI.NavMesh.Query = (_, _, _) => (true, new Vector3(11, 0, 20));
+Check(PlayerEnemyPlacement.TryFind(anchor, out var localPoint) && localPoint.x == 11, "Use the successful nearby navigation point.");
+Check(UnityEngine.AI.NavMesh.Calls.Count == 1 && UnityEngine.AI.NavMesh.Calls[0].Radius == 3f, "Prefer the nearest surface in a 3m query without widening a successful search.");
+Check(UnityEngine.AI.NavMesh.Calls.All(call => call.Origin.Equals(anchor) && call.Areas == -1), "Sample around the actual player anchor using all navigation areas.");
+UnityEngine.AI.NavMesh.Calls.Clear();
+UnityEngine.AI.NavMesh.Query = (_, radius, _) => (radius == 5f, new Vector3(15, 1, 20));
+Check(PlayerEnemyPlacement.TryFind(anchor, out localPoint) && localPoint.x == 15, "A failed preferred query may find a surface at the inclusive 5m boundary.");
+Check(UnityEngine.AI.NavMesh.Calls.Select(call => call.Radius).SequenceEqual(new[] { 3f, 5f }), "Fallback must be bounded to a 5m query, never a global random roam.");
+UnityEngine.AI.NavMesh.Calls.Clear();
+UnityEngine.AI.NavMesh.Query = (_, _, _) => (false, Vector3.zero);
+Check(!PlayerEnemyPlacement.TryFind(anchor, out _), "A failed native sample must report failure rather than spawn at world zero.");
+Check(UnityEngine.AI.NavMesh.Calls.Count == 2, "Exhaustion stops after the two bounded samples.");
+UnityEngine.AI.NavMesh.Query = (_, _, _) => (true, new Vector3(16, 1, 20));
+Check(!PlayerEnemyPlacement.TryFind(anchor, out _), "Reject a malformed/native result beyond the maximum local radius.");
+UnityEngine.AI.NavMesh.Query = (_, _, _) => (true, Vector3.zero);
+Check(PlayerEnemyPlacement.TryFind(new Vector3(0, 1, 0), out _), "World zero is valid when a successful native sample actually places it near the player.");
+
+Console.WriteLine($"PASS {checks} production catalog, alias, preview identity, session-cache, and local enemy-placement checks.");

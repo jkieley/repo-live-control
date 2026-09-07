@@ -1,5 +1,7 @@
 # RepoCommandConsole screenshot walkthrough
 
+For the current 2.2 video with genuine moving gameplay and game audio, see [GAMEPLAY.md](GAMEPLAY.md). This document describes the earlier screenshot walkthrough.
+
 `repo-command-console-demo.mp4` is a 56-second silent, 1280 × 720, 24 fps H.264 video with web-friendly `yuv420p` pixels and MP4 fast-start metadata. It uses the selected Console Companion mascot, genuine 2.0.0 gameplay captures, edited closeups, and separate text cards for the documented 2.1.0 commands. The distinction appears in the video, captions, metadata, and publishing copy. No gameplay, game audio, or command results were synthesized.
 
 ## Deliverables

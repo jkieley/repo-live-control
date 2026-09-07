@@ -273,10 +273,12 @@ namespace RepoLiveControl.Runtime
                 {
                     if (parts.Count >= MaximumRenderers)
                         break;
-                    if (!IsActiveChild(renderer.transform, prefab.transform))
+                    if (!renderer.enabled || !IsActiveChild(renderer.transform, prefab.transform))
                         continue;
                     MeshFilter filter = renderer.GetComponent<MeshFilter>();
                     if (filter == null || filter.sharedMesh == null)
+                        continue;
+                    if (!IsModelMesh(renderer, filter.sharedMesh))
                         continue;
                     if (filter.sharedMesh.vertexCount > remainingVertices)
                         continue;
@@ -288,7 +290,7 @@ namespace RepoLiveControl.Runtime
                 {
                     if (parts.Count >= MaximumRenderers)
                         break;
-                    if (renderer.sharedMesh == null || !IsActiveChild(renderer.transform, prefab.transform))
+                    if (!renderer.enabled || renderer.sharedMesh == null || !IsActiveChild(renderer.transform, prefab.transform))
                         continue;
                     if (renderer.sharedMesh.vertexCount > remainingVertices)
                         continue;
@@ -333,6 +335,23 @@ namespace RepoLiveControl.Runtime
                 current = current.parent;
             }
             return true;
+        }
+
+        private static bool IsModelMesh(Renderer renderer, Mesh mesh)
+        {
+            // These prefab meshes are VFX/debug helpers, enabled until gameplay
+            // initialization. Rendering them opaque obscures the actual model.
+            if (renderer.name == "Thrust Effect")
+                return false;
+            if (mesh.name != "Cube" && mesh.name != "Plane")
+                return true;
+            Material[] materials = renderer.sharedMaterials;
+            foreach (Material material in materials)
+            {
+                if (material != null && material.name != "Default-Material")
+                    return true;
+            }
+            return false;
         }
 
         private static bool TryGetBounds(List<MeshPart> parts, out Bounds bounds)
@@ -387,6 +406,8 @@ namespace RepoLiveControl.Runtime
                 Matrix4x4 view = Matrix4x4.Scale(new Vector3(1f, 1f, -1f)) *
                     Matrix4x4.TRS(position, rotation, Vector3.one).inverse;
                 float size = frontOn ? Mathf.Max(bounds.extents.x, bounds.extents.y) * 1.08f : radius * 1.08f;
+                // Keep Unity's render-target projection so face winding/culling
+                // remain correct; normalize readback row orientation below.
                 Matrix4x4 projection = GL.GetGPUProjectionMatrix(
                     Matrix4x4.Ortho(-size, size, -size, size, radius * 0.1f, radius * 6f), true);
                 buffer.SetRenderTarget(target);
@@ -405,7 +426,7 @@ namespace RepoLiveControl.Runtime
                             continue;
                         if (!materialsAlreadyOwned)
                             materials.Add(material);
-                        buffer.DrawMesh(part.Mesh, part.Matrix, material, submesh, 0);
+                        buffer.DrawMesh(part.Mesh, part.Matrix, material, submesh, ColorPass(material));
                         draws++;
                     }
                 }
@@ -422,7 +443,8 @@ namespace RepoLiveControl.Runtime
                 };
                 result.ReadPixels(new Rect(0, 0, TextureSize, TextureSize), 0, 0, false);
                 bool visible = false;
-                foreach (Color32 pixel in result.GetPixels32())
+                Color32[] pixels = result.GetPixels32();
+                foreach (Color32 pixel in pixels)
                 {
                     if (pixel.a > 8)
                     {
@@ -432,6 +454,22 @@ namespace RepoLiveControl.Runtime
                 }
                 if (!visible)
                     return null;
+                if (SystemInfo.graphicsUVStartsAtTop)
+                {
+                    for (int row = 0; row < TextureSize / 2; row++)
+                    {
+                        int opposite = TextureSize - row - 1;
+                        for (int column = 0; column < TextureSize; column++)
+                        {
+                            int first = row * TextureSize + column;
+                            int last = opposite * TextureSize + column;
+                            Color32 swap = pixels[first];
+                            pixels[first] = pixels[last];
+                            pixels[last] = swap;
+                        }
+                    }
+                    result.SetPixels32(pixels);
+                }
                 result.Apply(false, true);
                 Texture2D completed = result;
                 result = null;
@@ -455,23 +493,23 @@ namespace RepoLiveControl.Runtime
             string sourceTextureProperty = null;
             if (texture == null && source != null)
             {
-                if (source.HasProperty("_BaseMap"))
+                // R.E.P.O.'s Hurtable and Fresnel shaders use these explicit
+                // albedo properties instead of Standard's _MainTex.
+                foreach (string property in new[] { "_AlbedoTexture", "_BaseTexture", "_BaseMap", "_MainTex" })
                 {
-                    texture = source.GetTexture("_BaseMap");
-                    if (texture != null)
-                        sourceTextureProperty = "_BaseMap";
-                }
-                if (texture == null && source.HasProperty("_MainTex"))
-                {
-                    texture = source.GetTexture("_MainTex");
-                    if (texture != null)
-                        sourceTextureProperty = "_MainTex";
+                    if (source.HasProperty(property))
+                        texture = source.GetTexture(property);
+                    if (texture == null)
+                        continue;
+                    sourceTextureProperty = property;
+                    break;
                 }
             }
-            // Verified in the shipped sharedassets0.assets. Unlike the sprite/UI
-            // fallback, this unlit shader supports tint, textures AND depth
-            // writes, so a back mesh cannot paint over a nearer opaque surface.
-            Shader shader = UsableShader(sprite ? "Sprites/Default" : "Particles/Standard Unlit");
+            // Standard's forward pass is verified with the shipped GPU-only
+            // meshes. The particle shader requires vertex streams those assets
+            // do not have and can silently render a completely empty target.
+            // Emission below gives every mesh a readable minimum brightness.
+            Shader shader = UsableShader(sprite ? "Sprites/Default" : "Standard");
             if (shader == null)
                 shader = UsableShader(texture == null ? "Unlit/Color" : "Unlit/Texture");
             if (shader == null)
@@ -494,33 +532,42 @@ namespace RepoLiveControl.Runtime
                     material.SetTextureOffset("_MainTex", source.GetTextureOffset(sourceTextureProperty));
                 }
             }
-            if (!sprite && shader.name == "Particles/Standard Unlit")
+            if (!sprite && shader.name == "Standard")
             {
                 material.SetFloat("_Mode", 0f);
-                material.SetFloat("_ColorMode", 0f);
                 material.SetFloat("_ZWrite", 1f);
                 material.SetFloat("_SrcBlend", (float)BlendMode.One);
                 material.SetFloat("_DstBlend", (float)BlendMode.Zero);
-                material.SetFloat("_Cull", (float)CullMode.Back);
-                material.SetFloat("_LightingEnabled", 0f);
-                material.SetFloat("_SoftParticlesEnabled", 0f);
-                material.SetFloat("_DistortionEnabled", 0f);
-                material.SetFloat("_FlipbookMode", 0f);
-                material.DisableKeyword("_SOFTPARTICLES_ON");
-                material.DisableKeyword("_DISTORTION_ON");
-                material.DisableKeyword("_FADING_ON");
-                material.DisableKeyword("_REQUIRE_UV2");
+                material.SetFloat("_Metallic", 0f);
+                material.SetFloat("_Glossiness", 0f);
+                material.DisableKeyword("_ALPHATEST_ON");
+                material.DisableKeyword("_ALPHABLEND_ON");
+                material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                material.EnableKeyword("_EMISSION");
+                material.SetTexture("_EmissionMap", texture != null ? texture : Texture2D.whiteTexture);
+                if (sourceTextureProperty != null)
+                {
+                    material.SetTextureScale("_EmissionMap", source.GetTextureScale(sourceTextureProperty));
+                    material.SetTextureOffset("_EmissionMap", source.GetTextureOffset(sourceTextureProperty));
+                }
             }
             Color color = Color.white;
             if (source != null)
             {
-                if (source.HasProperty("_BaseColor"))
+                if (source.HasProperty("_AlbedoColor"))
+                    color = source.GetColor("_AlbedoColor");
+                else if (source.HasProperty("_BaseColor"))
                     color = source.GetColor("_BaseColor");
                 else if (source.HasProperty("_Color"))
                     color = source.GetColor("_Color");
             }
             if (material.HasProperty("_Color"))
                 material.SetColor("_Color", color);
+            if (!sprite && shader.name == "Standard")
+            {
+                material.SetColor("_Color", new Color(color.r * 0.25f, color.g * 0.25f, color.b * 0.25f, 1f));
+                material.SetColor("_EmissionColor", new Color(color.r * 0.7f, color.g * 0.7f, color.b * 0.7f, 1f));
+            }
             return material;
         }
 
@@ -528,6 +575,22 @@ namespace RepoLiveControl.Runtime
         {
             Shader shader = Shader.Find(name);
             return shader != null && shader.isSupported ? shader : null;
+        }
+
+        private static int ColorPass(Material material)
+        {
+            // Avoid shadow/grab/deferred passes: only a forward color pass can
+            // produce the intended thumbnail in this isolated render target.
+            var lightMode = new ShaderTagId("LightMode");
+            for (int pass = 0; pass < material.passCount; pass++)
+            {
+                string tag = material.shader.FindPassTagValue(pass, lightMode).name;
+                if (string.Equals(tag, "ForwardBase", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(tag, "UniversalForward", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(tag, "SRPDefaultUnlit", StringComparison.OrdinalIgnoreCase))
+                    return pass;
+            }
+            return 0;
         }
 
         private static void DestroyOwned(Object value)

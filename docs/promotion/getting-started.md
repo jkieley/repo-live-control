@@ -2,7 +2,11 @@
 
 This tutorial covers **RepoCommandConsole 2.2.0** for R.E.P.O. Browse equipment and loot with compact previews, spawn your first item, then try the player commands. The mod uses a separate `F2` console with host-controlled multiplayer permissions.
 
-[Install RepoCommandConsole](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Complete command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
+[Install RepoCommandConsole](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Watch gameplay](https://youtu.be/j_Qd60MG6VA) · [Demo website](https://repo-command-console.jkieley543940.chatgpt.site) · [Complete command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
+
+[![Watch the REPO Command Console 2.2.0 gameplay tutorial on YouTube](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/01-full-spawn-browser.jpg)](https://youtu.be/j_Qd60MG6VA)
+
+The [2-minute gameplay demo](https://youtu.be/j_Qd60MG6VA) shows browsing, spawning, normal item pickup, and targeted cleanup in a real singleplayer session with game audio.
 
 ## 1. Install with Thunderstore or r2modman
 
@@ -20,17 +24,17 @@ Type `/spawn`. The full supported item, valuable, and enemy catalog opens immedi
 
 Small previews help identify targets as you browse. An entry without a preview still has its name and can be selected. Click a row or highlight it and press **Tab** to insert its canonical name; this selects the target without executing the command.
 
-To find a particular item, type `/spawn strength`, select **item:Strength Upgrade**, and press **Tab**. Autocomplete supplies the catalog prefix and quotes. Press **Enter** to execute.
+To follow the equipment demonstration, type `/spawn tracker`, select **item:Valuable Tracker**, and press **Tab**. The search also finds Extraction Tracker, so check the highlighted name before accepting it. Autocomplete supplies the catalog prefix and quotes. Press **Enter** to execute.
 
 The accepted command typically looks like:
 
 ```text
-/spawn "item:Strength Upgrade"
+/spawn "item:Valuable Tracker"
 ```
 
 The default count is one, and the default location is the player who submitted the command. Read the result before submitting another command. Press **Escape** or **F2** to close the console and inspect the item.
 
-[See an earlier in-game autocomplete screenshot](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg). It was captured with version 2.0.0 and does not show the new scrolling or previews; other installed mods provide some surrounding HUD.
+[See the complete 2.2.0 gameplay gallery below](#220-gameplay-gallery), including the full browser, tracker search, held equipment, and targeted cleanup.
 
 Fuzzy search also recognizes verified alternative names. For example, `/spawn pistol` finds **item:Gun**, `defib` finds **item:Defibro**, and `light bridge` finds **item:Phase Bridge**. Accepting a suggestion inserts the canonical name without adding a duplicate browser row. If an example is absent, select an available entry from your current game instead.
 
@@ -39,8 +43,8 @@ Fuzzy search also recognizes verified alternative names. For example, `/spawn pi
 Targets come from three catalogs: `item:` for equipment, weapons and upgrades; `valuable:` for loot; and `enemy:` for enemies. Include a prefix such as `/spawn item:` in your search to find that category. Supported resource entries also include cosmetic cases, enemy souls, and surplus money bags when available in the installed game.
 
 ```text
-/spawn "item:Strength Upgrade" 2 player-location
-/spawn "valuable:Valuable Manor Diamond Display" 3 random-non-collision-location
+/spawn "item:Valuable Tracker" 1 player-location
+/spawn "valuable:Valuable Manor Goblet" 1 random-non-collision-location
 /spawn "enemy:Headman" 1 random-non-collision-location
 ```
 
@@ -49,8 +53,8 @@ Use autocomplete to confirm the target before running each example. `random-non-
 ## 4. Clean up what you spawned
 
 ```text
-/despawn "item:Strength Upgrade" all
-/despawn "valuable:Valuable Manor Diamond Display" all
+/despawn "item:Valuable Tracker" all
+/despawn "valuable:Valuable Manor Goblet" all
 /despawn "enemy:Headman" all
 ```
 
@@ -98,9 +102,61 @@ The player command set also includes `/kill`, `/damage`, `/maxhealth`, `/knockba
 
 For a visual example, select a player and try `/wings <player> pink`, then `/wings <player> off`. `/maxhealth` changes maximum health for the current runtime; it does not purchase a permanent upgrade, revive a character, or automatically fill the new maximum. Use the [full reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md#player-commands) for each command's defaults and limits.
 
+## 2.2.0 gameplay gallery
+
+All eight images show genuine RepoCommandConsole **2.2.0** gameplay from a clean profile. Click an image for the original 1920 × 1080 capture.
+
+### Browse without a query
+
+[![REPO Command Console 2.2.0 full spawn browser with compact target thumbnails](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/01-full-spawn-browser.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/01-full-spawn-browser.jpg)
+
+The demo's `/spawn` list contains 255 targets. Eight rows fit at once; scrolling reaches the rest.
+
+### Search equipment
+
+[![R.E.P.O. fuzzy equipment search showing Extraction Tracker and Valuable Tracker](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/02-fuzzy-equipment-search.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/02-fuzzy-equipment-search.jpg)
+
+Searching `tracker` finds both equipment entries with their previews. Select the intended canonical name before running the command.
+
+### Hold spawned equipment
+
+[![A spawned Valuable Tracker held in front of the player using R.E.P.O.'s normal grab control](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/03-holding-spawned-tracker.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/03-holding-spawned-tracker.jpg)
+
+The spawned Valuable Tracker is held using the normal grab control. Holding it does not by itself demonstrate activation or equipping.
+
+### Remove the tracked item
+
+[![REPO Command Console reporting successful targeted despawn of the Valuable Tracker](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/04-targeted-cleanup.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/04-targeted-cleanup.jpg)
+
+The cleanup command removes one matching mod-spawned Valuable Tracker. Normal level content is outside this command's scope.
+
+### Hold spawned loot
+
+[![A spawned Manor Goblet held during R.E.P.O. gameplay with its displayed value](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/05-holding-spawned-goblet.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/05-holding-spawned-goblet.jpg)
+
+The Manor Goblet can also be grabbed normally. Its displayed value is the result of this particular spawn, not a promised value for every goblet.
+
+### Find cosmetic cases by a familiar name
+
+[![REPO Command Console case search returning canonical cosmetic case names and previews](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/06-cosmetic-case-search.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/06-cosmetic-case-search.jpg)
+
+Searching `case` brings the supported cosmetic cases to the top through their aliases. This image shows search and previews; it does not demonstrate opening a case or receiving a cosmetic unlock.
+
+### See a spawned enemy in the level
+
+[![An Apex Predator standing near the player after a REPO Command Console spawn](https://raw.githubusercontent.com/jkieley/repo-live-control/43e8731ae189c554e0444efc8cc7c1e3f685c108/docs/promotion/screenshots/2.2.0/07-apex-predator-in-game.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/43e8731ae189c554e0444efc8cc7c1e3f685c108/docs/promotion/screenshots/2.2.0/07-apex-predator-in-game.jpg)
+
+The spawned Apex Predator appears in the level near the player. Enemy `player-location` checks for walkable navigation within three metres, then up to five metres, and reports an error if neither search succeeds.
+
+### Clean up the spawned enemy
+
+[![REPO Command Console confirming one Apex Predator was removed by targeted despawn](https://raw.githubusercontent.com/jkieley/repo-live-control/43e8731ae189c554e0444efc8cc7c1e3f685c108/docs/promotion/screenshots/2.2.0/08-enemy-cleanup.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/43e8731ae189c554e0444efc8cc7c1e3f685c108/docs/promotion/screenshots/2.2.0/08-enemy-cleanup.jpg)
+
+`/despawn "enemy:Apex Predator" 1` removes the matching mod-spawned enemy. The console confirms one removal; the duck is gone from the floor behind it.
+
 ## Troubleshooting
 
-- **F2 does nothing:** confirm you used Start Modded, enabled the mod in the launched profile, installed both dependencies, and have not changed its toggle key in BepInEx configuration.
+- **F2 does nothing:** confirm you used Start Modded, enabled the mod in the launched profile, installed both dependencies, and have not changed its toggle key in BepInEx configuration. Version 2.2.0 adds manager protection for the observed loss of the console during menu-to-singleplayer loading; restart the game after updating.
 - **No target matches:** clear the target text back to `/spawn`, then browse or search again and accept a live entry. Verified aliases help with familiar names, but arbitrary external names may differ from the installed catalog.
 - **A preview is blank:** select by its name; missing previews do not remove an otherwise supported target. A newly visible preview can take a moment to appear.
 - **Permission denied:** the host must grant access after you join the current room.

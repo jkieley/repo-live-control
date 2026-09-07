@@ -7,5 +7,6 @@
   <ItemGroup>
     <Compile Include="../../src/RepoLiveControl/Runtime/RuntimeTargetCatalog.cs" Link="Production/RuntimeTargetCatalog.cs" />
     <Compile Include="../../src/RepoLiveControl/Runtime/CatalogAliases.cs" Link="Production/CatalogAliases.cs" />
+    <Compile Include="../../src/RepoLiveControl/Runtime/PlayerEnemyPlacement.cs" Link="Production/PlayerEnemyPlacement.cs" />
   </ItemGroup>
 </Project>

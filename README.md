@@ -4,34 +4,52 @@
 
 RepoCommandConsole is a free in-game command console mod for **R.E.P.O.** Spawn enemies, weapons, upgrades, items, and valuables from your live game catalog. Version **2.2.0** adds a fully scrollable catalog with compact item previews, guide-friendly search names, and cosmetic cases, souls, and money bags. Press `F2`, browse or fuzzy-search a target, and run it. Heal, revive, summon players, or return them to the truck. The host controls multiplayer access and can grant friends permission to use the commands.
 
-[Install RepoCommandConsole on Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Step-by-step tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md) · [Video walkthrough (MP4)](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.mp4) · [All commands](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
+[Install RepoCommandConsole on Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Watch gameplay](https://youtu.be/j_Qd60MG6VA) · [Demo website](https://repo-command-console.jkieley543940.chatgpt.site) · [Step-by-step tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md) · [All commands](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
 
 > **Current compatibility:** R.E.P.O. `v0.4.4.3` or compatible  
 > **Required dependencies:** BepInExPack `5.4.2305` and REPOLib `4.2.0`
 
+## Watch the gameplay demo
+
+[![Watch REPO Command Console 2.2.0 gameplay: browse, spawn, pick up items, and clean up enemies](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/01-full-spawn-browser.jpg)](https://youtu.be/j_Qd60MG6VA)
+
+[Watch the 2-minute gameplay demo on YouTube](https://youtu.be/j_Qd60MG6VA). See the scrollable catalog, fuzzy search, equipment and loot pickup, money bags, cosmetic cases, nearby enemies, and targeted cleanup. Genuine singleplayer footage runs at its original speed with game audio. Visit the [demo website](https://repo-command-console.jkieley543940.chatgpt.site) for the video, screenshots, and installation links.
+
 ## See the console in game
 
-Click a screenshot to open the full-resolution image and read the command text.
+These genuine **RepoCommandConsole 2.2.0** screenshots were captured in a clean gameplay profile. Click any image to open it at full resolution.
 
-### Find a spawn with fuzzy autocomplete
+### Browse the full spawn catalog
 
-[![R.E.P.O. command console showing fuzzy autocomplete for spawn targets](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg)
+[![R.E.P.O. Command Console 2.2.0 showing 255 spawn targets with compact previews and a scrollbar](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/01-full-spawn-browser.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/01-full-spawn-browser.jpg)
 
-Start typing a target name to see matching entries from the live game catalog. Use the arrow keys and `Tab` to select a suggestion.
+Type `/spawn` to browse without a search query. This demo profile contains 255 targets; the list follows your installed game and mods.
 
-### Run a spawn command
+### Spawn and hold real equipment
 
-[![RepoCommandConsole showing a successful spawn command in R.E.P.O.](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-spawn-success.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-spawn-success.jpg)
+[![A Valuable Tracker spawned by REPO Command Console and held with the game's native grab control](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/03-holding-spawned-tracker.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/03-holding-spawned-tracker.jpg)
 
-The console confirms that three Strength Upgrades were spawned. They were placed elsewhere in the level in this demonstration.
+The spawned Valuable Tracker can be held with the game's normal grab control.
 
 ### Clean up your spawned objects
 
-[![RepoCommandConsole showing a successful despawn command in R.E.P.O.](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-despawn-success.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-despawn-success.jpg)
+[![REPO Command Console confirming targeted cleanup of one spawned Valuable Tracker](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/04-targeted-cleanup.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/04-targeted-cleanup.jpg)
 
-The `/despawn` command removes the three Strength Upgrades created for the demonstration, and the console confirms the cleanup.
+`/despawn "item:Valuable Tracker" 1` removes the tracked item, and the console confirms one matching object was removed.
 
-These are genuine gameplay screenshots of RepoCommandConsole **2.0.0**, first published with the 2.0.1 page update. Other installed mods contribute some of the surrounding HUD. The player commands added in 2.1.0 are documented below.
+### Search familiar names with previews
+
+[![R.E.P.O. console searching case and showing cosmetic case targets with real previews](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/06-cosmetic-case-search.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/a211d245125cd7ed6a48ded3a28e1230dce8f0af/docs/promotion/screenshots/2.2.0/06-cosmetic-case-search.jpg)
+
+Search `case` to find cosmetic-case targets through their supported aliases. Accept a result to insert its canonical name.
+
+### Spawn an enemy nearby
+
+[![An Apex Predator spawned near the player with REPO Command Console 2.2.0](https://raw.githubusercontent.com/jkieley/repo-live-control/43e8731ae189c554e0444efc8cc7c1e3f685c108/docs/promotion/screenshots/2.2.0/07-apex-predator-in-game.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/43e8731ae189c554e0444efc8cc7c1e3f685c108/docs/promotion/screenshots/2.2.0/07-apex-predator-in-game.jpg)
+
+An Apex Predator spawned using `player-location` appears in the level. Version 2.2.0 finds a nearby walkable point within five metres or reports a placement error.
+
+[See all eight gameplay captures, including enemy cleanup, in the tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md#220-gameplay-gallery).
 
 ## Install with Thunderstore or r2modman
 
@@ -168,7 +186,7 @@ All spawn, despawn, and player commands are host-authoritative. A friend's conso
 
 Only the host's local console can run `/grant` and `/revoke`; those commands are rejected when sent over the network. Grants belong to the current room, are removed when a player leaves, and are cleared when the room or lobby host changes.
 
-Everyone submitting the new commands should install version **2.1.0**. Characters targeted by `/expression`, `/animationspeed`, `/pupils`, or `/falling` also need this version for the owner relay; they do not need a grant just to receive an effect. Other player actions use the game's host-compatible RPCs and can affect unmodded characters. Unavailable targets and unsupported clients produce explicit errors, including partial results for `all`. The AllPlayerCommands mod is not a dependency.
+Use **2.2.0** for the current catalog, previews, and command interface. Characters targeted by `/expression`, `/animationspeed`, `/pupils`, or `/falling` need **2.1.0 or newer** for the owner relay; they do not need a grant just to receive an effect. Other player actions use the game's host-compatible RPCs and can affect unmodded characters. Unavailable targets and unsupported clients produce explicit errors, including partial results for `all`. The AllPlayerCommands mod is not a dependency.
 
 ## Despawning is intentionally scoped
 

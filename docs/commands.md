@@ -33,6 +33,7 @@ Aliases do not create duplicate rows. The catalog includes registered REPOLib ta
 - `location` is either `player-location` or `random-non-collision-location`.
 - `location` may follow `target` directly; when count is omitted it must be the final argument and count defaults to `1`.
 - An omitted location is `player-location` and resolves to the player who submitted the command.
+- For enemies, `player-location` selects the nearest NavMesh point within 3 metres, extending the search to at most 5 metres if necessary. If no nearby walkable floor exists, the command asks you to move or use `random-non-collision-location`; it does not redirect the enemy to a distant roaming point. This local search does not guarantee collision-free placement.
 - Malformed counts and values outside `1..500` are rejected. A valid count reaches the host executor unchanged instead of being silently reduced to an older per-kind limit.
 - Random placement reserves separated level points and rejects occupied physics volumes. For enemies, the collision test runs against the final point returned by `EnemyRoamFindPoint`, not merely the earlier seed point.
 - Multi-object enemy setups are trimmed so the reported count is the actual number of `EnemyParent` objects.

@@ -195,6 +195,16 @@ namespace RepoLiveControl
 
         private void DrawWindow(int windowId)
         {
+            // A focused GUI.Window can receive keyboard events in its own
+            // callback. Handle them before TextField consumes non-text keys;
+            // the shared gate deduplicates outer OnGUI and Update delivery.
+            HandleKeyboardEvent(Event.current);
+            if (!open)
+            {
+                ReleaseGuiFocusIfRequested();
+                return;
+            }
+
             GUILayout.BeginVertical();
             GUILayout.Label("REPO COMMAND CONSOLE  •  " + RoleLabel(), titleStyle);
             GUILayout.Label(

@@ -1,0 +1,269 @@
+{
+  "enemy_sequence_pending": false,
+  "segments": [
+    {
+      "source": "equipment-01",
+      "in": 68,
+      "out": 71,
+      "phase": "F2 console and equipment",
+      "tag": "REAL GAMEPLAY · v2.2",
+      "title": "REPO Command Console",
+      "detail": "Find it. Spawn it. Pick it up.",
+      "style": "intro"
+    },
+    {
+      "source": "equipment-01",
+      "in": 0,
+      "out": 2,
+      "phase": "F2 console and equipment",
+      "tag": "EQUIPMENT",
+      "title": "Browse the full catalog",
+      "detail": "255 targets · Real models and icons"
+    },
+    {
+      "source": "equipment-01",
+      "in": 12,
+      "out": 16.5,
+      "phase": "F2 console and equipment",
+      "tag": "EQUIPMENT",
+      "title": "Scroll through every target",
+      "detail": "Eight visible rows, with compact previews"
+    },
+    {
+      "source": "equipment-01",
+      "in": 22.7,
+      "out": 26,
+      "phase": "F2 console and equipment",
+      "tag": "FUZZY SEARCH",
+      "title": "Type a few letters",
+      "detail": "Matching equipment appears as you type"
+    },
+    {
+      "source": "equipment-01",
+      "in": 31.4,
+      "out": 34,
+      "phase": "F2 console and equipment",
+      "tag": "KEYBOARD CONTROLS",
+      "title": "Down selects. Tab accepts.",
+      "detail": "The exact target name is filled in"
+    },
+    {
+      "source": "equipment-01",
+      "in": 41.2,
+      "out": 44.9,
+      "phase": "F2 console and equipment",
+      "tag": "SPAWN",
+      "title": "Press Enter to spawn",
+      "detail": "The console confirms the result"
+    },
+    {
+      "source": "equipment-01",
+      "in": 53.5,
+      "out": 55.8,
+      "phase": "F2 console and equipment",
+      "tag": "BACK TO THE GAME",
+      "title": "F2 closes the console",
+      "detail": "Your spawned item is ready to use"
+    },
+    {
+      "source": "equipment-01",
+      "in": 66.4,
+      "out": 74.3,
+      "phase": "F2 console and equipment",
+      "tag": "NORMAL GAME PHYSICS",
+      "title": "Pick up the Valuable Tracker",
+      "detail": "Lift and move it with the normal grab control"
+    },
+    {
+      "source": "equipment-01",
+      "in": 75.7,
+      "out": 78.4,
+      "phase": "F2 console and equipment",
+      "tag": "NORMAL GAME PHYSICS",
+      "title": "Hold it, then let it go",
+      "detail": "The item remains in the world"
+    },
+    {
+      "source": "equipment-01",
+      "in": 90.8,
+      "out": 94.4,
+      "phase": "F2 console and equipment",
+      "tag": "TARGETED CLEANUP",
+      "title": "Remove the item you spawned",
+      "detail": "Use /despawn with the exact target"
+    },
+    {
+      "source": "equipment-01",
+      "in": 102,
+      "out": 104.2,
+      "phase": "F2 console and equipment",
+      "tag": "TARGETED CLEANUP",
+      "title": "Clean up and keep playing",
+      "detail": "The spawned tracker is gone"
+    },
+    {
+      "source": "loot-01",
+      "in": 17,
+      "out": 20.5,
+      "phase": "Spawn and hold loot",
+      "tag": "VALUABLES",
+      "title": "Find loot by name",
+      "detail": "Fuzzy search works for valuables too"
+    },
+    {
+      "source": "loot-01",
+      "in": 26,
+      "out": 29.5,
+      "phase": "Spawn and hold loot",
+      "tag": "VALUABLES",
+      "title": "Spawn a Goblet nearby",
+      "detail": "Exact target, count, and location"
+    },
+    {
+      "source": "loot-01",
+      "in": 49,
+      "out": 58.3,
+      "phase": "Spawn and hold loot",
+      "tag": "NORMAL GAME PHYSICS",
+      "title": "Pick up the valuable",
+      "detail": "A real Goblet, held in game"
+    },
+    {
+      "source": "loot-01",
+      "in": 77,
+      "out": 80.2,
+      "phase": "Spawn and hold loot",
+      "tag": "TARGETED CLEANUP",
+      "title": "Remove the spawned valuable",
+      "detail": "The matching Goblet is cleaned up"
+    },
+    {
+      "source": "loot-01",
+      "in": 103.2,
+      "out": 106.8,
+      "phase": "Money bags and aliases",
+      "tag": "FRIENDLY ALIASES",
+      "title": "Search familiar names",
+      "detail": "Small Money Bag resolves to the right target"
+    },
+    {
+      "source": "loot-01",
+      "in": 112.2,
+      "out": 115.8,
+      "phase": "Money bags and aliases",
+      "tag": "MONEY BAGS",
+      "title": "Spawn the selected bag",
+      "detail": "The console confirms its canonical name"
+    },
+    {
+      "source": "bag-enemy-01",
+      "in": 0.5,
+      "out": 8,
+      "phase": "Money bags and aliases",
+      "tag": "NORMAL GAME PHYSICS",
+      "title": "Pick up the money bag",
+      "detail": "The spawned bag uses normal grab physics"
+    },
+    {
+      "source": "bag-enemy-01",
+      "in": 16.5,
+      "out": 20.5,
+      "phase": "Money bags and aliases",
+      "tag": "TARGETED CLEANUP",
+      "title": "Clean up the bag",
+      "detail": "Remove only the matching spawned target"
+    },
+    {
+      "source": "bag-enemy-01",
+      "in": 51.8,
+      "out": 56,
+      "phase": "Cosmetic cases",
+      "tag": "COSMETIC CASES",
+      "title": "Browse cosmetic rarities",
+      "detail": "Common · Uncommon · Rare · Ultra Rare"
+    },
+    {
+      "source": "bag-enemy-01",
+      "in": 58,
+      "out": 62.1,
+      "phase": "Cosmetic cases",
+      "tag": "COSMETIC CASES",
+      "title": "Spawn the case you need",
+      "detail": "Choose the exact result and press Enter"
+    },
+    {
+      "source": "bag-enemy-01",
+      "in": 68,
+      "out": 70.2,
+      "phase": "Cosmetic cases",
+      "tag": "BACK TO THE GAME",
+      "title": "Return to the spawned case",
+      "detail": "F2 closes the console"
+    },
+    {
+      "source": "bag-enemy-01",
+      "in": 74,
+      "out": 84.4,
+      "phase": "Cosmetic cases",
+      "tag": "NORMAL GAME PHYSICS",
+      "title": "Pick it up normally",
+      "detail": "The actual cosmetic case, held in game"
+    },
+    {
+      "source": "bag-enemy-01",
+      "in": 96,
+      "out": 100.2,
+      "phase": "Cosmetic cases",
+      "tag": "TARGETED CLEANUP",
+      "title": "Leave the area clear",
+      "detail": "Targeted cleanup removes the case"
+    },
+    {
+      "source": "enemy-apex-final",
+      "in": 68.4,
+      "out": 72.0,
+      "phase": "Spawn and remove enemies",
+      "tag": "ENEMIES",
+      "title": "Find an enemy by name",
+      "detail": "Fuzzy search finds Apex Predator"
+    },
+    {
+      "source": "enemy-apex-final",
+      "in": 77.0,
+      "out": 81.0,
+      "phase": "Spawn and remove enemies",
+      "tag": "SPAWN",
+      "title": "Spawn it near the player",
+      "detail": "Choose the exact target, then press Enter"
+    },
+    {
+      "source": "enemy-apex-final",
+      "in": 85.0,
+      "out": 94.5,
+      "phase": "Spawn and remove enemies",
+      "tag": "LIVE GAMEPLAY",
+      "title": "See the enemy in game",
+      "detail": "Apex Predator in the live session"
+    },
+    {
+      "source": "enemy-apex-final",
+      "in": 101.5,
+      "out": 106.5,
+      "phase": "Spawn and remove enemies",
+      "tag": "TARGETED CLEANUP",
+      "title": "Remove the spawned enemy",
+      "detail": "The matching enemy disappears"
+    },
+    {
+      "source": "equipment-01",
+      "in": 102.5,
+      "out": 107.5,
+      "phase": "Outro",
+      "tag": "READY FOR YOUR NEXT SESSION?",
+      "title": "Install RepoCommandConsole",
+      "detail": "Thunderstore · Coollectors",
+      "url": "thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/",
+      "style": "outro"
+    }
+  ]
+}

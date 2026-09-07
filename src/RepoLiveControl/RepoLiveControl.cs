@@ -1286,7 +1286,10 @@ namespace RepoLiveControl
             }
             else if (job.Placement == "at-player")
             {
-                position = SemiFunc.EnemyRoamFindPoint(job.Anchor);
+                if (!PlayerEnemyPlacement.TryFind(job.Anchor, out position))
+                    throw new InvalidOperationException(
+                        "No walkable enemy spawn point was found within 5 metres of the player. " +
+                        "Move onto nearby walkable floor, or use random-non-collision-location.");
             }
             else
             {

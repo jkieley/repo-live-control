@@ -1,103 +1,111 @@
 # RepoCommandConsole promotion kit
 
-Updated September 7, 2026 after version 2.1.0 was published on Thunderstore and GitHub. The refreshed README, feature description, tutorial links, gameplay gallery, and selected Console Companion mascot are published. GitHub About, homepage, and topics are applied. The announcement and outreach text below remain prepared copy; no community posts or creator messages have been sent.
+**Updated September 7, 2026: the gameplay video and demo website are public; the 2.2.0 GitHub and Thunderstore releases are still pending.** Automated and targeted live checks have passed. Release announcements below are drafts for use after the new package is public. No community posts or creator messages have been sent.
 
-## Canonical links and assets
+## Current links and assets
 
-- [Install on Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/)
-- [GitHub 2.1.0 release](https://github.com/jkieley/repo-live-control/releases/tag/v2.1.0), published September 7, 2026 at 17:35:45 UTC
-- [Release ZIP](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/Coollectors-RepoCommandConsole-2.1.0.zip)
-- [Getting-started tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
-- [Command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
-- [Selected Console Companion package icon](https://github.com/jkieley/repo-live-control/blob/main/thunderstore/icon.png)
-- [Gameplay screenshots](https://github.com/jkieley/repo-live-control/tree/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots)
+- [Thunderstore package page](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/)
+- [Public 2.2.0 gameplay video](https://youtu.be/j_Qd60MG6VA)
+- [Public demo website](https://repo-command-console.jkieley543940.chatgpt.site)
+- [Prepared 2.2.0 release notes](release-notes-2.2.0.md)
+- [Getting-started tutorial](getting-started.md)
+- [Command reference](../commands.md)
+- [Catalog coverage and money-bag behavior](../catalog-coverage-audit.md)
+- [Selected Console Companion icon](../../thunderstore/icon.png)
 - [Source and issue tracker](https://github.com/jkieley/repo-live-control)
 
-The existing screenshots show the 2.0.0 autocomplete/spawn/despawn interface. Label them accordingly; they do not demonstrate the new 2.1.0 player effects. Use the chosen mascot consistently across the listing and promotional assets.
+Version 2.1.0 was published on September 7, 2026 on [GitHub](https://github.com/jkieley/repo-live-control/releases/tag/v2.1.0) and Thunderstore. It introduced the player commands and selected mascot. Its [56-second silent screenshot walkthrough](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.mp4) uses genuine 2.0.0 captures; it does not demonstrate the new 2.2.0 browser, previews, or player effects. Keep these older assets labeled accurately.
 
-## Published screenshot walkthrough
+The final 128.2-second gameplay video is public on YouTube as `j_Qd60MG6VA`. YouTube confirmed publication, and anonymous oEmbed returned HTTP 200 with the correct title, author, and embeddable player. English captions and the custom gameplay poster are saved. The demo website returned HTTP 200 with the actual YouTube privacy-enhanced embed and VideoObject metadata. These publication checks were confirmed September 7, 2026.
 
-The release includes a **56-second, 720p, silent captioned screenshot walkthrough**, built from the existing genuine gameplay captures:
-
-- [Watch or download the MP4](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.mp4)
-- [SRT caption file](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.srt)
-- [Walkthrough poster](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo-poster.jpg)
-
-This published video explains the console through screenshots. It is separate from the future live-gameplay recording script below and does not establish live 2.1.0 player-command or two-client acceptance.
+YouTube still requires the channel's one-time verification before external description links become clickable. The plain URLs remain in the description; the public video and demo website are accessible.
 
 ## Distribution status
 
-- **Published:** Thunderstore 2.1.0 page and package, GitHub README/tutorial/source, selected mascot, updated GitHub metadata, release ZIP, and screenshot walkthrough assets.
-- **Prepared, awaiting the user's Steam login:** [Steam guide BBCode](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/steam-guide.bbcode). No Steam guide publication is claimed.
-- **Prepared, awaiting confirmed destinations and account access:** community announcement and creator outreach. No posts or messages have been sent.
-- **Future capture:** the 45-second live-gameplay sequence below, including actual 2.1.0 player-command footage.
+| Material | Status |
+| --- | --- |
+| Public package, GitHub release, mascot, and screenshot walkthrough | 2.1.0 published; historical assets remain available. |
+| 2.2.0 source, release notes, command reference, and tutorial | Prepared locally; full automated checks and targeted live acceptance passed. Publication pending; no two-client acceptance claimed. |
+| New gameplay recording, YouTube upload, and website | Public and verified. YouTube publication and anonymous embed confirmed; English captions and custom poster saved. Website HTTP 200 with the video embed and VideoObject metadata. |
+| Steam guide | Existing [BBCode draft](steam-guide.bbcode); needs a 2.2.0 content review and authenticated publication. No published guide claimed. |
+| Community announcement and creator outreach | Prepared copy; destination rules and account access still need checking before sending. |
 
-No search-ranking change has been measured or claimed.
+No search-ranking improvement has been measured or claimed.
 
 ## One-sentence pitch
 
-RepoCommandConsole is a free R.E.P.O. mod that puts item and enemy spawning, team recovery, player commands, and fuzzy autocomplete in a separate F2 console with host-controlled access.
+RepoCommandConsole is a free R.E.P.O. mod with a scrollable item and enemy catalog, compact previews, fuzzy search, player commands, and host-controlled access in a separate F2 console.
 
 ## Prepared short release announcement
 
-**REPO Command Console 2.1.0: spawning, team recovery, and player commands**
+**Draft for publication after the 2.2.0 package is live.**
 
-RepoCommandConsole gives R.E.P.O. a searchable F2 console for spawning enemies, weapons, upgrades, items, and valuables. The new player commands include revive, heal, summon, truck return, and ordered chains such as `/chain all revive heal truck`.
+**REPO Command Console 2.2.0: browse the full spawn catalog with previews**
 
-Use autocomplete to choose a target, grant friends command access from the host's console, and clean up objects the mod spawned. The package page now includes real gameplay screenshots and a step-by-step tutorial.
+Type `/spawn` in the F2 console and browse the supported item, valuable, and enemy list with the wheel, scrollbar, or arrow keys. Eight compact rows stay visible while the rest scroll into view. Small previews show actual game assets, and fuzzy search still helps you find a particular target.
+
+The catalog adds four cosmetic cases, three enemy souls, and three surplus money bags when their game resources are available. Familiar names such as Pistol, Defib, and Light Bridge find the existing canonical targets without duplicate rows. Console-spawned money bags use their prefab defaults; a larger physical bag does not promise a larger payout.
+
+Select a target with Tab or a click, press Enter to execute, and clean up objects the mod spawned. Existing revive, heal, summon, truck-return, and other player commands remain available. The host controls friends' command access.
 
 The host and command users need the mod. Targets of expression, animation-speed, pupil, and falling effects need 2.1.0 or newer too. Required dependencies: BepInExPack 5.4.2305 and REPOLib 4.2.0.
 
-[Download and screenshots](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
+[Download and screenshots](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Watch gameplay](https://youtu.be/j_Qd60MG6VA) · [Demo website](https://repo-command-console.jkieley543940.chatgpt.site) · [Tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
 
 ## Creator outreach draft
 
-Subject: R.E.P.O. mod demo idea: spawn a challenge, then recover the team
+Subject: R.E.P.O. mod demo idea: browse a loadout, spawn it, then recover the team
 
-Hi — I maintain RepoCommandConsole, a free R.E.P.O. mod with a separate F2 command console. It lets you search the live item/enemy catalog, spawn a challenge encounter, clean up your own spawns, and use player commands such as revive, heal, summon, and truck return. The host can grant friends access, which opens up some cooperative challenge ideas.
+Hi — I maintain RepoCommandConsole, a free R.E.P.O. mod with a separate F2 console. Its 2.2.0 update adds a full scrollable spawn catalog with compact game-asset previews and familiar-name search. It also supports cleanup of its own spawns and player commands such as revive, heal, summon, and truck return. The host can grant friends command access.
 
-A compact video could show autocomplete, spawn a loadout, introduce one enemy, then demonstrate `/chain all revive heal truck`. The install page has genuine screenshots, and the tutorial covers the exact commands and multiplayer requirements. If this fits your audience, the links below have everything needed to try it. No coverage obligation or positive-review request.
+A compact demo could browse the catalog, search Pistol to find Gun, spawn and clean up a loadout, then show an actual recovery sequence. The tutorial covers exact commands and multiplayer requirements. If this fits your audience, the links below have the installation details. No coverage obligation or positive-review request.
 
-[Mod page](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
+[Mod page](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Watch gameplay](https://youtu.be/j_Qd60MG6VA) · [Demo website](https://repo-command-console.jkieley543940.chatgpt.site) · [Tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
 
-## Three concrete promotion targets
+Send this draft only after the 2.2.0 package is publicly available. The video and website already passed their public access checks.
 
-| Target | Why it fits | Prepared material and next action |
-| --- | --- | --- |
-| [R.E.P.O. Steam Guides](https://steamcommunity.com/app/3241660/guides/) | The game's official community guide surface includes Modding or Configuration, Co-op, and Multiplayer categories. | Publish the complete tutorial using `steam-guide.bbcode`; use the selected mascot as the guide image and the verified gameplay captures in relevant sections. |
-| [R.E.P.O. Modding Server](https://discord.com/invite/vPJtKhYAFe) | Both the [Thunderstore R.E.P.O. page](https://thunderstore.io/c/repo/) and the [community modding wiki](https://repomods.com/) link this server. | Use the short announcement in the server's currently designated mod-release/showcase area after reading its channel rules. The public invite does not expose rules or an approved posting channel, so none is invented here. |
-| [jerrytheshoe's R.E.P.O. spawning video work](https://www.nexusmods.com/repo/mods/83?tab=videos) | The creator's own mod page links a spawning demonstration dated November 2, 2025 and a BepInEx tutorial: direct subject overlap. | Personalize the outreach draft around the spawning demonstration and use the creator's current advertised contact route. This is a researched candidate, not a claim that the creator currently accepts pitches; the visible evidence is from 2025. |
+## Researched promotion destinations
 
-These are concrete destinations to evaluate, not endorsements or commitments from their operators. Do not post the same announcement into unrelated discussions or ask for votes, ratings, or reciprocal links.
+These are previously researched candidates; check the current posting rules and contact route before use.
 
-## Future 45-second live-gameplay recording script
+| Target | Fit and next action |
+| --- | --- |
+| [R.E.P.O. Steam Guides](https://steamcommunity.com/app/3241660/guides/) | Publish the updated tutorial in the applicable guide categories, with the selected mascot and accurately labeled gameplay captures. |
+| [R.E.P.O. Modding Server](https://discord.com/invite/vPJtKhYAFe) | The [Thunderstore R.E.P.O. page](https://thunderstore.io/c/repo/) and [modding wiki](https://repomods.com/) link this server. Read its rules and use its designated showcase area; no approved posting channel has been established here. |
+| [jerrytheshoe's R.E.P.O. spawning video work](https://www.nexusmods.com/repo/mods/83?tab=videos) | Previously researched spawning demonstration and BepInEx tutorial overlap with this mod. The evidence was from 2025; verify the creator's current contact route and interest before a personalized pitch. |
 
-This is a proposed new recording, not the script or runtime of the published 56-second screenshot walkthrough.
+No endorsement, accepted pitch, or publication is implied by this list.
 
-Suggested title: **REPO Command Console: Spawn Items, Revive Players, and Recover Your Team**
+## Final gameplay demo
 
-| Time | Capture | Narration |
-| --- | --- | --- |
-| 0–5 seconds | Actual gameplay, F2 console opening | “RepoCommandConsole adds a separate command console to R.E.P.O. Press F2 to open it.” |
-| 5–15 seconds | Type strength, accept the item suggestion, spawn one upgrade | “Search the live catalog, press Tab to accept a target, then Enter to spawn.” |
-| 15–23 seconds | Show the spawned item, then its matching despawn result | “Clean up the objects you created when you're finished.” |
-| 23–36 seconds | Record a real 2.1.0 recovery sequence and result | “Player commands include revive, heal, summon, and truck return. Chains run supported actions in order.” |
-| 36–45 seconds | Show the install page and requirements | “Find RepoCommandConsole by Coollectors on Thunderstore. The host controls who can use commands.” |
+Title: **REPO Command Console 2.2 — Spawn Items, Loot & Enemies | Real Gameplay**
 
-Record the feature sequence being claimed before publishing this future video. Automated command and transport tests do not substitute for a real two-player capture. The already-published screenshot walkthrough explains the existing console; it is not footage of the newly added player actions. This live recording remains a prepared script.
+| Chapter | Recorded content |
+| --- | --- |
+| 0:00 | F2 console, scrollable browser, fuzzy search, Valuable Tracker pickup, and cleanup |
+| 0:37 | Spawn and hold a Goblet, then remove it |
+| 0:57 | Money Bag alias search, spawning, pickup, and cleanup |
+| 1:16 | Cosmetic case search, spawning, pickup, and cleanup |
+| 1:41 | Spawn Apex Predator near the player, observe it in the level, and clean it up |
 
-Proposed description for the future live recording:
+The final edit lasts 128.2 seconds and uses original-speed singleplayer footage with captured game audio. Idle waits were removed. The [publishing copy](video/gameplay-publishing-copy.md) and [media verification](video/GAMEPLAY.md) describe the exact output; no two-client behavior is demonstrated.
 
-> Learn how to use RepoCommandConsole for R.E.P.O.: open the F2 console, spawn items with fuzzy autocomplete, clean up mod-spawned objects, and use player commands. Install: https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/ . Tutorial and multiplayer requirements: https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md . The demonstration uses the versions shown on screen.
+Prepared video description:
 
-## GitHub metadata applied
+> Browse the full supported spawn catalog in RepoCommandConsole 2.2.0 for R.E.P.O. Use compact previews, fuzzy search, and familiar aliases, then select a target and run the command. The mod also includes cleanup and player commands with host-controlled permissions. Install and requirements: https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/ . Tutorial: https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md . Gameplay uses the versions shown on screen.
 
-About: **REPO Command Console: spawn enemies, items, upgrades and valuables; heal, revive, teleport and customize players. F2 autocomplete and host-controlled multiplayer permissions.**
+## Validation and final release checks
 
-Homepage: the canonical Thunderstore package URL above.
+The full test command passed: 76 command/network scenarios, five simulated player-runtime/relay scenarios, 35 catalog/local-placement checks, 24 installed-game API contracts, nine compiled enemy-placement route/API contracts, **25** preview isolation/API checks, Windows PowerShell 5.1 compatibility, and a Release build with zero warnings or errors. Enemy `player-location` now searches within 3 metres, extends to 5 metres, and fails clearly if no walkable point exists; automated checks reject the former distant-roaming route.
 
-Topics: `bepinex`, `command-console`, `csharp`, `multiplayer`, `repo-game`, `repo-mod`, `thunderstore`.
+Live checks confirmed menu-to-singleplayer persistence and F2/Escape closing while the text field is focused. A Valuable Tracker and Goblet spawned, could be held with the native grab control, and were removed by targeted despawn. A Small Money Bag worked through its alias and preview, spawned, and initialized with a displayed value of $1,000. A representative case and soul were spawned in an earlier 2.2.0 run. This samples the new resource families; it does not verify every variant or an extraction payout.
 
-## Release notes for editors
+The final enemy footage shows Apex Predator spawning near the player twice, walking normally, and targeted cleanup with a successful console result and cleared floor. The corrected nearby-spawn route is therefore both tested and recorded; no collision-free or every-enemy guarantee is claimed.
 
-Version 2.1.0 implements 18 player verbs, including `chain`. Current automated validation covers parsing, completion, permissions, simulated production player runtime/transport, installed-game API contracts, and Windows PowerShell 5.1 compatibility. At preparation time, a live two-player acceptance run had not been completed. Describe the implemented controls and documented requirements; do not call multiplayer behavior “verified across clients” without completing that acceptance run.
+A read-only live provider sweep produced upright actual-asset previews for **254 of 255** audited targets; Hidden has no visible model mesh and keeps its category placeholder. No real two-client acceptance or peer-visibility result has been established.
+
+1. Preserve the completed live evidence and its limits; keep every-variant and two-client behavior unverified unless separately observed.
+2. Preserve the verified public video/site URLs, English captions, and gameplay poster in the final package documentation.
+3. Package the final README, changelog, mascot, manifest, and matching 2.2.0 DLL; verify the ZIP entries and hashes.
+4. Publish the GitHub release and Thunderstore package, then verify public metadata, README, images, dependencies, and downloaded ZIP.
+5. Replace prepared-status wording with confirmed publication facts; publish outreach only to confirmed destinations with the user's authorization.

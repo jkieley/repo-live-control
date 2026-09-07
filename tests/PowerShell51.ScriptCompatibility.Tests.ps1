@@ -128,10 +128,11 @@ try {
         -SkipPowerShell51Compatibility | Out-Null
 
     $testCalls = @(Get-Content -LiteralPath $stubLog)
-    Assert-True ($testCalls.Count -eq 6) "Expected six dotnet calls from Test-All.ps1; found $($testCalls.Count)."
+    Assert-True ($testCalls.Count -eq 7) "Expected seven dotnet calls from Test-All.ps1; found $($testCalls.Count)."
     Assert-True ($testCalls[2] -match 'RepoLiveControl\.CatalogTests') 'Catalog behavior checks must be included.'
-    Assert-True ($testCalls[4] -match '^build ') 'Release build must precede thumbnail inspection.'
-    Assert-True ($testCalls[5] -match 'RepoLiveControl\.PreviewSafetyTests' -and $testCalls[5].Contains($fixtureDll)) 'Thumbnail checks must inspect the exact Release DLL.'
+    Assert-True ($testCalls[4] -match '^build ') 'Release build must precede compiled-plugin inspection.'
+    Assert-True ($testCalls[5] -match 'RepoLiveControl\.EnemyPlacementContractTests' -and $testCalls[5].Contains($fixtureDll)) 'Enemy placement checks must inspect the exact Release DLL.'
+    Assert-True ($testCalls[6] -match 'RepoLiveControl\.PreviewSafetyTests' -and $testCalls[6].Contains($fixtureDll)) 'Thumbnail checks must inspect the exact Release DLL.'
 
     [System.IO.File]::WriteAllText($stubLog, '')
     $installPath = Join-Path $fixtureScripts 'Install-Local.ps1'

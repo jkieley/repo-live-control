@@ -24,15 +24,19 @@ The dependency-free command/network harness verifies:
 
 The same script builds the full BepInEx plugin in Release configuration against the configured game/profile assemblies.
 
+Version 2.2.0 adds complete-catalog navigation beyond 512 entries, no-query `/spawn` browsing, immutable alias matching, and viewport/keyboard regression coverage. `RepoLiveControl.CatalogTests` links the production catalog, aliases, and local enemy-placement helper against game doubles for 35 resource, filtering, resolution, preview-identity, session-cache, and bounded navigation checks. After the Release build, `RepoLiveControl.EnemyPlacementContractTests` runs nine contracts against the actual command's compiled routing and the installed navigation API. It verifies local-result forwarding, failure before spawning, separate safe/random placement, and rejection of intentional roaming/failed-search mutations. `RepoLiveControl.PreviewSafetyTests` then runs 25 compiled-plugin isolation/API checks against the same output DLL.
+
+The final 2.2.0 test run passed all 76 command/network scenarios, five simulated player-runtime/relay scenarios, 35 catalog/local-placement checks, 24 game API contracts, nine compiled enemy-placement contracts, 25 preview checks, and PowerShell 5.1 compatibility. The Release build produced zero warnings or errors.
+
 Version 2.1.0 adds coverage for all 18 full-word player commands, explicit single/all selection, duplicate and stale names, large-lobby completion, numeric limits, full-word chains, speech isolation, and grant denial for every player verb. Owner-policy tests reject forged hosts, wrong characters, old Photon views, expired timestamps, bulk fan-out, and arbitrary relayed commands, including timestamp wraparound.
 
 `RepoLiveControl.PlayerRuntimeTests` links the production player job scheduler, player catalog, and owner relay against small game/transport doubles. It exercises individual versus bulk effects, chain ordering, sender-relative summon, mid-batch revocation, sustained-effect cleanup, host migration, scene exit, owner acknowledgements, unsupported targets, forged replies, and expired owner work. These are simulated runtime tests, not a real Photon session.
 
 `RepoLiveControl.GameApiTests` reads the installed `Assembly-CSharp.dll` metadata and IL using the profile's Mono.Cecil. It checks 24 private-field, RPC-signature, and authority contracts, including the four explicit arguments to `UpdateHealthRPC` and the owner-only expression/animation/falling checks. It does not load or mutate the game.
 
-## Player-command two-client acceptance (2.1.0)
+## Player-command two-client acceptance
 
-Use a private test run with two independent Steam/Photon actors on version 2.1.0. Automated tests do not substitute for this acceptance pass.
+Use a private test run with two independent Steam/Photon actors on the current 2.2.0 build. These player commands were introduced in 2.1.0. Automated tests do not substitute for this acceptance pass.
 
 1. Confirm both consoles offer `/revive` and `all` plus every character, including the host and dead players; select a quoted name with Tab. Verify names beyond the first eight suggestions are reachable with Up/Down.
 2. From the ungranted client, submit `/heal all`; confirm the host rejects it. Grant that client locally, then run `/heal <client> 25`, `/revive <dead-character>`, `/maxhealth <client> 200`, and `/heal all` and verify observed values on both peers.
@@ -42,14 +46,22 @@ Use a private test run with two independent Steam/Photon actors on version 2.1.0
 6. Run `/chain all kill revive heal truck`; verify group-wide order. Revoke the submitter during a larger batch and verify remaining work stops. Revoke during sustained wings/tumble/falling and verify release (falling lease expiry may take two seconds).
 7. Change host, leave the room, and change scenes while effects or replies are pending. Confirm old work does not execute on newly spawned characters or under the previous host.
 
-The real two-client acceptance above has not been performed for 2.1.0. Automated and simulated checks pass; the currently running modded profile still has 2.0.0 loaded.
+The real two-client acceptance above has not been performed for 2.1.0 or 2.2.0. Automated and simulated checks pass; the completed live 2.2.0 checks below used singleplayer.
+
+## Completed 2.2.0 singleplayer checks
+
+On September 7, 2026, the console survived menu-to-singleplayer loading into a generated level. F2 opened it, and F2/Escape closed it with the text field focused. Valuable Tracker and Manor Goblet targets spawned normally, could be held using the native grab control, and were removed by targeted despawn. Small Money Bag alias lookup, preview, spawning, and a displayed initialized value of $1,000 were observed; a representative case and soul were spawned in an earlier 2.2.0 run.
+
+After the enemy-placement correction, Apex Predator spawned near the player twice and walked normally. Targeted despawn produced a successful console result and cleared the visible floor. This singleplayer sequence was recorded on the final tested DLL; it does not establish collision-free placement or behavior for every enemy.
+
+A read-only sweep of the actual preview provider produced 254 upright previews from 255 audited targets. Hidden lacks a visible model mesh and retains a category placeholder. These observations do not establish all ten new variants' runtime behavior, cosmetic unlocks, extraction payouts, or peer visibility. See the [catalog audit](catalog-coverage-audit.md) and [preview validation](thumbnail-previews.md) for scope.
 
 ## Local Thunderstore host acceptance
 
 1. Build the package with `scripts/Build-Package.ps1`.
 2. Fully exit R.E.P.O., then import the ZIP through **Settings → Import local mod**, or use `scripts/Install-Local.ps1` for the direct-DLL development loop. The installer rejects an active game process because Windows cannot replace a loaded plugin DLL.
 3. Quarantine older local bridge DLLs so only one command console owns the active Harmony patch.
-4. Click **Start Modded**, create a private multiplayer game, and confirm `REPO Command Console 2.0.0` in `BepInEx/LogOutput.log`.
+4. Click **Start Modded**, create a private multiplayer game, and confirm `REPO Command Console 2.2.0` in `BepInEx/LogOutput.log`.
 5. Capture the normal game view.
 6. Press `F2` and capture the open console.
 7. Type fuzzy input for each position, capturing the highlighted match:

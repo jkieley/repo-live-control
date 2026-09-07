@@ -1,0 +1,145 @@
+1
+00:00:00,000 --> 00:00:03,000
+REAL GAMEPLAY · v2.2 — REPO Command Console
+Find it. Spawn it. Pick it up.
+
+2
+00:00:03,000 --> 00:00:05,000
+EQUIPMENT — Browse the full catalog
+255 targets · Real models and icons
+
+3
+00:00:05,000 --> 00:00:09,500
+EQUIPMENT — Scroll through every target
+Eight visible rows, with compact previews
+
+4
+00:00:09,500 --> 00:00:12,800
+FUZZY SEARCH — Type a few letters
+Matching equipment appears as you type
+
+5
+00:00:12,800 --> 00:00:15,400
+KEYBOARD CONTROLS — Down selects. Tab accepts.
+The exact target name is filled in
+
+6
+00:00:15,400 --> 00:00:19,100
+SPAWN — Press Enter to spawn
+The console confirms the result
+
+7
+00:00:19,100 --> 00:00:21,400
+BACK TO THE GAME — F2 closes the console
+Your spawned item is ready to use
+
+8
+00:00:21,400 --> 00:00:29,300
+NORMAL GAME PHYSICS — Pick up the Valuable Tracker
+Lift and move it with the normal grab control
+
+9
+00:00:29,300 --> 00:00:32,000
+NORMAL GAME PHYSICS — Hold it, then let it go
+The item remains in the world
+
+10
+00:00:32,000 --> 00:00:35,600
+TARGETED CLEANUP — Remove the item you spawned
+Use /despawn with the exact target
+
+11
+00:00:35,600 --> 00:00:37,800
+TARGETED CLEANUP — Clean up and keep playing
+The spawned tracker is gone
+
+12
+00:00:37,800 --> 00:00:41,300
+VALUABLES — Find loot by name
+Fuzzy search works for valuables too
+
+13
+00:00:41,300 --> 00:00:44,800
+VALUABLES — Spawn a Goblet nearby
+Exact target, count, and location
+
+14
+00:00:44,800 --> 00:00:54,100
+NORMAL GAME PHYSICS — Pick up the valuable
+A real Goblet, held in game
+
+15
+00:00:54,100 --> 00:00:57,300
+TARGETED CLEANUP — Remove the spawned valuable
+The matching Goblet is cleaned up
+
+16
+00:00:57,300 --> 00:01:00,900
+FRIENDLY ALIASES — Search familiar names
+Small Money Bag resolves to the right target
+
+17
+00:01:00,900 --> 00:01:04,500
+MONEY BAGS — Spawn the selected bag
+The console confirms its canonical name
+
+18
+00:01:04,500 --> 00:01:12,000
+NORMAL GAME PHYSICS — Pick up the money bag
+The spawned bag uses normal grab physics
+
+19
+00:01:12,000 --> 00:01:16,000
+TARGETED CLEANUP — Clean up the bag
+Remove only the matching spawned target
+
+20
+00:01:16,000 --> 00:01:20,200
+COSMETIC CASES — Browse cosmetic rarities
+Common · Uncommon · Rare · Ultra Rare
+
+21
+00:01:20,200 --> 00:01:24,300
+COSMETIC CASES — Spawn the case you need
+Choose the exact result and press Enter
+
+22
+00:01:24,300 --> 00:01:26,500
+BACK TO THE GAME — Return to the spawned case
+F2 closes the console
+
+23
+00:01:26,500 --> 00:01:36,900
+NORMAL GAME PHYSICS — Pick it up normally
+The actual cosmetic case, held in game
+
+24
+00:01:36,900 --> 00:01:41,100
+TARGETED CLEANUP — Leave the area clear
+Targeted cleanup removes the case
+
+25
+00:01:41,100 --> 00:01:44,700
+ENEMIES — Find an enemy by name
+Fuzzy search finds Apex Predator
+
+26
+00:01:44,700 --> 00:01:48,700
+SPAWN — Spawn it near the player
+Choose the exact target, then press Enter
+
+27
+00:01:48,700 --> 00:01:58,200
+LIVE GAMEPLAY — See the enemy in game
+Apex Predator in the live session
+
+28
+00:01:58,200 --> 00:02:03,200
+TARGETED CLEANUP — Remove the spawned enemy
+The matching enemy disappears
+
+29
+00:02:03,200 --> 00:02:08,200
+READY FOR YOUR NEXT SESSION? — Install RepoCommandConsole
+Thunderstore · Coollectors
+thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/

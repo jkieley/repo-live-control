@@ -1,5 +1,13 @@
 namespace UnityEngine
 {
+    public struct Vector3
+    {
+        public float x, y, z;
+        public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
+        public static Vector3 zero => new Vector3(0, 0, 0);
+        public float sqrMagnitude => x * x + y * y + z * z;
+        public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
+    }
     public class Object { public string name = ""; }
     public class Sprite : Object { }
     public class GameObject : Object
@@ -15,6 +23,23 @@ namespace UnityEngine
         public static Item[] ResourceItems = Array.Empty<Item>();
         public static T Load<T>(string path) where T : Object => Values.TryGetValue(path, out var value) ? value as T : null;
         public static T[] LoadAll<T>(string path) where T : Object => ResourceItems.OfType<T>().ToArray();
+    }
+}
+namespace UnityEngine.AI
+{
+    public struct NavMeshHit { public UnityEngine.Vector3 position; }
+    public static class NavMesh
+    {
+        public const int AllAreas = -1;
+        public static readonly List<(UnityEngine.Vector3 Origin, float Radius, int Areas)> Calls = new();
+        public static Func<UnityEngine.Vector3, float, int, (bool Success, UnityEngine.Vector3 Position)> Query;
+        public static bool SamplePosition(UnityEngine.Vector3 origin, out NavMeshHit hit, float radius, int areas)
+        {
+            Calls.Add((origin, radius, areas));
+            var result = Query(origin, radius, areas);
+            hit = new NavMeshHit { position = result.Position };
+            return result.Success;
+        }
     }
 }
 namespace Photon.Pun { public class PhotonView { } }

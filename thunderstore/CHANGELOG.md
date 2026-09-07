@@ -9,7 +9,12 @@ All notable changes to RepoCommandConsole are documented here.
 - Added small previews of actual game items, valuables, and enemies beside target names. Previews reuse native icons or render asset meshes without instantiating gameplay objects, use a bounded cache, and fall back to text when unavailable.
 - Expanded the supported catalog with ten verified network resources: four cosmetic cases, three enemy souls, and three surplus money bags. Disabled and removed prototype items remain excluded.
 - Added familiar guide names such as Pistol, Defib, and Light Bridge, plus shorter valuable names. Alias searches insert canonical targets without duplicating browser rows.
-- Added complete-catalog, fuzzy-alias, scrolling, keyboard, and catalog regression tests, plus compiled-plugin thumbnail isolation and installed-rendering-API checks in the standard test command.
+- Protected the console's BepInEx manager through game transitions. Verified that the console survives menu-to-singleplayer level loading, opens with F2, and executes a spawn through Run.
+- Fixed keyboard handling inside the focused console window; F2 and Escape closing were verified while the text field had focus.
+- Fixed enemy `player-location` placement choosing distant roaming points. It now samples navigation near the player within 3 metres, extends to 5 metres if needed, and returns a clear error before spawning if no nearby walkable point is available.
+- Recorded the corrected nearby placement with two Apex Predator spawns, normal enemy movement, and successful targeted cleanup in singleplayer.
+- Verified upright actual-asset previews for 254 of 255 audited targets; Hidden has no visible model mesh and retains its category placeholder.
+- Added complete-catalog, fuzzy-alias, scrolling, keyboard, and catalog regression tests, plus local enemy placement, compiled command-routing, thumbnail isolation, and installed-game API checks in the standard test command.
 
 ## 2.1.0 - 2026-09-07
 
