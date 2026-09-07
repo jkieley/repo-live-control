@@ -18,13 +18,13 @@ using UnityEngine.AI;
 
 namespace RepoLiveControl
 {
-    [BepInPlugin("com.jameskieley.repo.commandconsole", "REPO Command Console", "2.0.0")]
+    [BepInPlugin("com.jameskieley.repo.commandconsole", "REPO Command Console", "2.1.0")]
     [BepInDependency("REPOLib", BepInDependency.DependencyFlags.HardDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         internal const string PluginGuid = "com.jameskieley.repo.commandconsole";
         internal const string PluginName = "REPO Command Console";
-        internal const string PluginVersion = "2.0.0";
+        internal const string PluginVersion = "2.1.0";
 
         internal static Plugin Instance { get; private set; }
         internal static ManualLogSource Log { get; private set; }
@@ -487,6 +487,8 @@ namespace RepoLiveControl
 
         internal static void ProcessFrame()
         {
+            if (CommandConsoleRuntime.IsNetworkSessionSceneActive()) RefreshPermissionSession();
+            PlayerActionRuntime.ProcessFrame();
             if (HasActiveJob())
             {
                 RefreshPermissionSession();
@@ -670,7 +672,7 @@ namespace RepoLiveControl
             request.ExecutionContextBound = true;
         }
 
-        private static string GetInvalidExecutionReason(ControlRequest request)
+        internal static string GetInvalidExecutionReason(ControlRequest request)
         {
             if (request == null || !request.ExecutionContextBound)
                 return "The command has no valid execution session.";
@@ -734,7 +736,7 @@ namespace RepoLiveControl
 
         private static void Dispatch(ControlRequest request)
         {
-            string command = request.Command;
+            string command = request.Command.TrimStart();
             if (command.StartsWith("/", StringComparison.Ordinal))
             {
                 if (!SlashCommandRuntime.TryTranslateOrComplete(request, command, out command))
@@ -2374,7 +2376,7 @@ namespace RepoLiveControl
             return player;
         }
 
-        private static PlayerAvatar RequireRequestPlayer(ControlRequest request)
+        internal static PlayerAvatar RequireRequestPlayer(ControlRequest request)
         {
             if (request != null && request.RequesterActorNumber > 0 && PhotonNetwork.InRoom)
             {

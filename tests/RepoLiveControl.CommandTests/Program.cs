@@ -4,7 +4,7 @@ using RepoLiveControl.Commands;
 using RepoLiveControl.Networking;
 using RepoLiveControl.Runtime;
 
-internal static class Program
+internal static partial class Program
 {
     private static int failures;
 
@@ -36,6 +36,13 @@ internal static class Program
 
     private static int Main()
     {
+        Run("all full-word player commands and remote grants", PlayerCommandGrammarAndPermissions);
+        Run("player argument defaults and serialization", PlayerArgumentRoundTrips);
+        Run("player numeric and mode validation", PlayerArgumentRejection);
+        Run("individual/all player resolution", IndividualPlayerResolution);
+        Run("non-host fuzzy character and mode completion", PlayerActionCompletion);
+        Run("full-word action chains and speech isolation", PlayerChainsAndSpeech);
+        Run("owner effect sender target and view validation", OwnerEffectTrustBoundary);
         Run("spawn defaults", SpawnDefaults);
         Run("despawn defaults", DespawnDefaults);
         Run("quoted target and token spans", QuotedTargetAndTokenSpans);

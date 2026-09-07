@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace RepoLiveControl.Commands
 {
@@ -21,7 +22,7 @@ namespace RepoLiveControl.Commands
                 "/revoke",
                 "/permissions",
                 "/help"
-            });
+            }.Concat(PlayerActionCommands.Names).ToArray());
 
         public static IReadOnlyList<string> CommandNames
         {
@@ -54,6 +55,8 @@ namespace RepoLiveControl.Commands
             }
 
             string normalized = commandName.ToLowerInvariant();
+            if (PlayerActionCommands.IsCommand(normalized))
+                return PlayerActionCommands.Parse(tokenization.Tokens);
             switch (normalized)
             {
                 case "/spawn":

@@ -34,10 +34,21 @@ namespace RepoLiveControl.Commands
             IEnumerable<string> grantPlayers,
             IEnumerable<string> revokePlayers,
             bool includeHostManagementCommands)
+            : this(targets, grantPlayers, revokePlayers, grantPlayers, includeHostManagementCommands)
+        {
+        }
+
+        public CompletionCatalog(
+            IEnumerable<string> targets,
+            IEnumerable<string> grantPlayers,
+            IEnumerable<string> revokePlayers,
+            IEnumerable<string> actionPlayers,
+            bool includeHostManagementCommands)
         {
             Targets = CopyDistinct(targets);
             GrantPlayers = CopyDistinct(grantPlayers);
             RevokePlayers = CopyDistinct(revokePlayers);
+            ActionPlayers = CopyDistinct(actionPlayers);
             IncludeHostManagementCommands = includeHostManagementCommands;
         }
 
@@ -51,6 +62,8 @@ namespace RepoLiveControl.Commands
         public IReadOnlyList<string> GrantPlayers { get; private set; }
 
         public IReadOnlyList<string> RevokePlayers { get; private set; }
+
+        public IReadOnlyList<string> ActionPlayers { get; private set; }
 
         public bool IncludeHostManagementCommands { get; private set; }
 
@@ -274,6 +287,12 @@ namespace RepoLiveControl.Commands
             if (tokens.Count == 0)
                 return false;
 
+            if (PlayerActionCommands.IsCommand(tokens[0].Value))
+            {
+                kind = SlashCommandKind.PlayerAction;
+                return true;
+            }
+
             switch (tokens[0].Value.ToLowerInvariant())
             {
                 case "/spawn":
@@ -307,6 +326,10 @@ namespace RepoLiveControl.Commands
         {
             switch (kind)
             {
+                case SlashCommandKind.PlayerAction:
+                    if (argumentIndex == 1)
+                        return GetActionPlayers(catalog);
+                    return PlayerActionCommands.Suggestions(tokens[0].Value, argumentIndex, tokens);
                 case SlashCommandKind.Spawn:
                     if (argumentIndex == 1)
                         return GetSpawnTargets(catalog.Targets);
@@ -345,6 +368,12 @@ namespace RepoLiveControl.Commands
                     return true;
             }
             return false;
+        }
+
+        private static IEnumerable<string> GetActionPlayers(CompletionCatalog catalog)
+        {
+            yield return "all";
+            foreach (string player in catalog.ActionPlayers) yield return player;
         }
 
         private static IEnumerable<string> GetSpawnTargets(IEnumerable<string> targets)

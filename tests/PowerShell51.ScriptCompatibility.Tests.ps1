@@ -128,7 +128,7 @@ try {
         -SkipPowerShell51Compatibility | Out-Null
 
     $testCalls = @(Get-Content -LiteralPath $stubLog)
-    Assert-True ($testCalls.Count -eq 2) "Expected two dotnet calls from Test-All.ps1; found $($testCalls.Count)."
+    Assert-True ($testCalls.Count -eq 4) "Expected four dotnet calls from Test-All.ps1; found $($testCalls.Count)."
 
     [System.IO.File]::WriteAllText($stubLog, '')
     $installPath = Join-Path $fixtureScripts 'Install-Local.ps1'

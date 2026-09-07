@@ -17,7 +17,7 @@ if (-not (Test-Path -LiteralPath $commonScriptPath -PathType Leaf)) {
 . $commonScriptPath
 
 $PackageName = 'RepoCommandConsole'
-$PackageVersion = '2.0.0'
+$PackageVersion = '2.1.0'
 $PackageFileName = "Coollectors-$PackageName-$PackageVersion.zip"
 $ExpectedWebsite = 'https://github.com/jkieley/repo-live-control'
 $ExpectedDependencies = @(

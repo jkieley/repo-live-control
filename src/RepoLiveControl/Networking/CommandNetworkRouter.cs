@@ -34,6 +34,7 @@ namespace RepoLiveControl.Networking
             new Dictionary<int, int>();
         private long observedSessionRevision = -1;
         private bool disposed;
+        internal PlayerEffectRelay PlayerEffects { get; private set; }
 
         internal CommandNetworkRouter(
             byte eventCode,
@@ -43,6 +44,7 @@ namespace RepoLiveControl.Networking
             this.eventCode = eventCode;
             this.permissions = permissions;
             this.resultSink = resultSink;
+            PlayerEffects = new PlayerEffectRelay(eventCode);
         }
 
         internal string SendRequest(string command)
@@ -167,7 +169,9 @@ namespace RepoLiveControl.Networking
                 out payload))
                 return;
 
-            if (kind == CommandNetworkPolicy.RequestKind)
+            if (kind == PlayerEffectRelay.EffectKind || kind == PlayerEffectRelay.ResultKind)
+                PlayerEffects.Receive(photonEvent.Sender, kind, requestId, payload);
+            else if (kind == CommandNetworkPolicy.RequestKind)
                 ReceiveRequest(photonEvent.Sender, requestId, payload);
             else if (!IsFromCurrentMaster(photonEvent.Sender))
                 return;
@@ -339,6 +343,7 @@ namespace RepoLiveControl.Networking
             if (disposed)
                 return;
             disposed = true;
+            PlayerEffects.Dispose();
             callbackRegistration.Dispose(
                 () => PhotonNetwork.RemoveCallbackTarget(this));
             pendingRequests.Clear();

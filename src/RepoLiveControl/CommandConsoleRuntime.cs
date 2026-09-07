@@ -14,7 +14,8 @@ namespace RepoLiveControl
     {
         private const string InputControlName = "RepoCommandConsole.Input";
         private const int WindowId = 198042;
-        private const int SuggestionLimit = 8;
+        private const int SuggestionLimit = 512;
+        private const int VisibleSuggestions = 8;
 
         private readonly Plugin plugin;
         private readonly ConfigEntry<KeyCode> toggleKey;
@@ -23,6 +24,7 @@ namespace RepoLiveControl
         private readonly ConsoleInputGate inputGate = new ConsoleInputGate();
 
         private Rect windowRect;
+        private Vector2 resultScroll;
         private string input = "/";
         private string result = "Ready. Type /help or use fuzzy autocomplete.";
         private IReadOnlyList<CompletionItem> suggestions = Array.AsReadOnly(new CompletionItem[0]);
@@ -229,14 +231,17 @@ namespace RepoLiveControl
             }
 
             GUILayout.Space(6f);
-            GUILayout.Label("FUZZY AUTOCOMPLETE", hintStyle);
+            GUILayout.Label("FUZZY AUTOCOMPLETE" + (suggestions.Count > 0 ?
+                "  " + (selectedSuggestion + 1) + "/" + suggestions.Count + " · Up/Down to browse" : ""), hintStyle);
             if (suggestions.Count == 0)
             {
                 GUILayout.Label("No completion for the active argument.", hintStyle);
             }
             else
             {
-                for (int index = 0; index < suggestions.Count; index++)
+                int first = Mathf.Clamp(selectedSuggestion - VisibleSuggestions + 1, 0,
+                    Math.Max(0, suggestions.Count - VisibleSuggestions));
+                for (int index = first; index < Math.Min(suggestions.Count, first + VisibleSuggestions); index++)
                 {
                     CompletionItem suggestion = suggestions[index];
                     string prefix = index == selectedSuggestion ? "▶  " : "    ";
@@ -256,11 +261,9 @@ namespace RepoLiveControl
 
             GUILayout.FlexibleSpace();
             GUILayout.Label("RESULT", hintStyle);
-            GUILayout.Label(
-                result,
-                resultStyle,
-                GUILayout.MinHeight(48f),
-                GUILayout.MaxHeight(72f));
+            resultScroll = GUILayout.BeginScrollView(resultScroll, GUILayout.Height(72f));
+            GUILayout.Label(result, resultStyle);
+            GUILayout.EndScrollView();
             if (history.Count > 0)
                 GUILayout.Label(string.Join("\n", history.ToArray()), hintStyle, GUILayout.MaxHeight(72f));
 
@@ -344,7 +347,7 @@ namespace RepoLiveControl
             }
         }
 
-        private static bool IsNetworkSessionSceneActive()
+        internal static bool IsNetworkSessionSceneActive()
         {
             RunManager runManager = RunManager.instance;
             if (runManager == null)
@@ -446,6 +449,7 @@ namespace RepoLiveControl
 
         private void SetResult(string value)
         {
+            resultScroll = Vector2.zero;
             result = string.IsNullOrWhiteSpace(value) ? "ERROR Empty command response." : value;
             AddHistory(result);
             if (result.IndexOf("granted you", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -504,6 +508,7 @@ namespace RepoLiveControl
                 RuntimeTargetCatalog.GetSelectors(true),
                 grantPlayers,
                 revokePlayers,
+                RuntimePlayerCatalog.Selectors(),
                 canManagePermissions);
             RefreshSuggestions();
         }

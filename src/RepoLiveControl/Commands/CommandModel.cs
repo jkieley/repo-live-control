@@ -9,7 +9,8 @@ namespace RepoLiveControl.Commands
         Grant,
         Revoke,
         Permissions,
-        Help
+        Help,
+        PlayerAction
     }
 
     public enum CommandTargetKind
@@ -31,7 +32,8 @@ namespace RepoLiveControl.Commands
         TooManyArguments,
         InvalidCount,
         CountOutOfRange,
-        InvalidLocation
+        InvalidLocation,
+        InvalidArgument
     }
 
     public static class CommandLocations
@@ -51,13 +53,15 @@ namespace RepoLiveControl.Commands
             string target,
             int? count,
             string location,
-            string player)
+            string player,
+            PlayerActionCommand playerAction = null)
         {
             Kind = kind;
             Target = target;
             Count = count;
             Location = location;
             Player = player;
+            PlayerAction = playerAction;
 
             CommandTargetKind targetKind;
             string targetName;
@@ -84,6 +88,8 @@ namespace RepoLiveControl.Commands
         public string Location { get; private set; }
 
         public string Player { get; private set; }
+
+        public PlayerActionCommand PlayerAction { get; private set; }
 
         private static void SplitTarget(
             string target,

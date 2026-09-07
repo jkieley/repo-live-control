@@ -8,6 +8,8 @@ The independent console sends the raw slash command to the host, which parses it
 |---|---|
 | `/spawn <target> [count=1] [location=player-location]` | Spawn a canonical `item:`, `valuable:`, or `enemy:` target; location may directly follow target while count defaults to `1`. |
 | `/despawn <target> [count=all]` | Remove matching objects previously spawned through this mod. |
+| `/<player-action> <player|all> [options...]` | Run one of the full-word player actions in `docs/commands.md` through the host. |
+| `/chain <player|all> <actions...>` | Run 1–8 ordered kill/revive/heal/summon/truck actions. |
 | `/grant <player>` | Locally grant a non-host actor for this room; host only. |
 | `/revoke <player>` | Locally revoke a room grant; host only. |
 | `/permissions` | Report the current room grant list. |
@@ -73,3 +75,20 @@ Pipe placements are `safe`, `near-player`, and `at-player`. The pipe thread neve
 - Random collision-free placement reserves separated points and checks occupied volumes. Enemy placement checks the exact final `EnemyRoamFindPoint` result before spawn.
 - Remote authorization cannot outlive its original room, Master Client, session revision, or grant.
 - Request completion occurs only after the observed job finishes or fails.
+
+## Player actions (2.1.0)
+
+The existing request envelope and room grants authorize all player actions. The host parses every command, resolves an exact player selector or the explicit `all` token, and captures avatar references including inactive death avatars. Each player job processes up to four targets per frame and rechecks its bound room/host/grant before subsequent work. Player jobs advance alongside ordinary console dispatch, so `/revoke` can interrupt an active player batch. A chain waits for each group-wide step before starting the next. Changes with an observable health/death state are checked for up to three seconds; unobservable visual/physics RPC dispatch is reported as applied without claiming every peer rendered it. Jobs stop after 25 seconds with partial counts.
+
+Expression, animation speed, pupils, and falling use the character owner's game API after host approval. This preserves vanilla owner-only security checks. Both ends advertise local Photon player property `rcc.player-effects=1` when their session becomes active. This is a capability signal, never a grant or authorization source.
+
+The same version-2 envelope accepts two additional kinds:
+
+```text
+"player-effect"        payload = "<avatar-view-id>|<Photon-server-timestamp>|<canonical-player-command>"
+"player-effect-result" payload = "OK ..." or "ERROR ..."
+```
+
+Only the current Master Client may send an effect. The owner accepts only the four supported verbs, an exact selector matching its own character, a matching Photon view ID, and a server timestamp no more than four seconds old. `all`, chains, grants, arbitrary commands, duplicate IDs, wrong targets, and stale work cannot pass the owner policy. Receipt queues work for `RunManager.Update`; it does not execute game actions in the event callback. Replies are bound to the request ID and expected actor and expire after five seconds. The host rechecks its original authorization before accepting a reply. Neither endpoint invokes a generic client command executor.
+
+Sustained effects retain their original authorization and target reference. Wings and tumble renew on the host every half-second; falling renews a two-second lease on the owner. Death, departure, revoke, scene unload, or host/room changes stop renewal. Cleanup never issues RPCs under the old host's authority into a changed room. A completed one-shot action is not rolled back by revocation.

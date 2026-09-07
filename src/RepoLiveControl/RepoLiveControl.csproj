@@ -4,9 +4,9 @@
     <AssemblyName>RepoCommandConsole</AssemblyName>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Version>2.0.0</Version>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
+    <Version>2.1.0</Version>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <FileVersion>2.1.0.0</FileVersion>
     <Description>Host-authoritative R.E.P.O. command console with fuzzy autocomplete and delegated client permissions.</Description>
     <RepoGamePath Condition="'$(RepoGamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\REPO</RepoGamePath>
     <RepoProfilePath Condition="'$(RepoProfilePath)' == ''">$(APPDATA)\Thunderstore Mod Manager\DataFolder\REPO\profiles\modded</RepoProfilePath>

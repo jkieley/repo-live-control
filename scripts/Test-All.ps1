@@ -84,6 +84,24 @@ Invoke-DotNet -Arguments @(
     'Release'
 )
 
+Write-Host 'Checking player RPC signatures and authority against the installed game...'
+Invoke-DotNet -Arguments @(
+    'run', '--project',
+    (Join-Path $repositoryRoot 'tests\RepoLiveControl.PlayerRuntimeTests\RepoLiveControl.PlayerRuntimeTests.csproj'),
+    '--configuration', 'Release'
+)
+
+Invoke-DotNet -Arguments @(
+    'run',
+    '--project',
+    (Join-Path $repositoryRoot 'tests\RepoLiveControl.GameApiTests\RepoLiveControl.GameApiTests.csproj'),
+    '--configuration',
+    'Release',
+    "-p:RepoProfilePath=$profilePath",
+    '--',
+    $gamePath
+)
+
 Write-Host 'Building RepoCommandConsole in Release configuration...'
 Invoke-DotNet -Arguments @(
     'build',

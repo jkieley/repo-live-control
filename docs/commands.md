@@ -1,6 +1,6 @@
 # In-game command reference
 
-Open the independent console with `F2`. It remains available when R.E.P.O. chat is disabled because it does not read or send chat messages.
+Open the independent console with `F2`. It remains available when R.E.P.O. chat is disabled. Commands do not pass through the chat parser; `/speak` explicitly sends speech through the game's speech API.
 
 Use `Up` and `Down` to change the highlighted fuzzy match, `Tab` to replace only the active argument, `Enter` to execute, and `Escape` or `F2` to close. Autocomplete adds quotes when an entity or player name contains spaces.
 
@@ -48,6 +48,49 @@ Examples:
 /despawn "valuable:Diamond Display"
 ```
 
+## Player commands
+
+Every command below requires `<player|all>` as its first argument. Type part of a name and press `Tab` to accept `"Nickname#ActorNumber"`, or choose `all`. The list includes the host, yourself, other characters, and dead characters. Up/Down scrolls through all available suggestions. Names are resolved exactly at execution; ambiguous duplicate names and stale selectors fail rather than affecting a different character. Singleplayer offers `"Local Player#local"` and `all`.
+
+| Command | Behavior / defaults |
+|---|---|
+| `/kill <player|all>` | Force death; already dead characters are skipped. |
+| `/revive <player|all>` | Revive at the death head; living characters are skipped. A death head must exist. |
+| `/heal <player|all> [full|amount]` | Full healing by default, or add a positive integer amount. Dead characters must be revived first. |
+| `/maxhealth <player|all> [maximum=200]` | Change maximum health, reducing current health if necessary. Does not revive or fill the new maximum. |
+| `/summon <player|all>` | Move characters/death heads to the command sender's position captured when the host starts the command. |
+| `/truck <player|all>` | Move characters/death heads to the truck safety spawn. |
+| `/knockback <player|all> [strength=5]` | Apply an impulse away from the sender, with an upward component. |
+| `/damage <player|all> [amount=10]` | Apply damage; vanilla invincibility and game-state checks remain active. |
+| `/expression <player|all> [index=4]` | Set facial expression; index is checked against the character's expression list. |
+| `/speak <player|all> [message=Hello!!!]` | Speak text, quoted or unquoted; slashes in text cannot execute commands. |
+| `/wings <player|all> [on|off|pink]` | Maintain regular or pink wings visuals until off; default on. |
+| `/tumble <player|all> [on|off|seconds=3]` | Force a timed tumble, keep tumbling with on, or release with off. |
+| `/flicker <player|all> [multiplier=2]` | Flicker flashlights. |
+| `/animationspeed <player|all> [speed=0.5] [in=0.05] [out=0.2] [seconds=3]` | Temporarily override animation speed; `off` clears the override. Transition parameters are passed to the game's animation API. |
+| `/pupils <player|all> [size=1.8] [priority=10] [springIn=25] [dampIn=0.8] [springOut=12] [dampOut=0.8] [seconds=3]` | Temporarily override pupils; `off` clears the override. |
+| `/falling <player|all> [on|off]` | Maintain or clear the falling flag; default on. |
+| `/resetpush <player|all>` | Reset the physics pusher state. |
+| `/chain <player|all> <actions...>` | Run 1–8 full-word actions, in order: `kill`, `revive`, `heal`, `summon`, `truck`. Each step finishes for the selected group before the next starts. |
+
+Examples:
+
+```text
+/revive all
+/heal "Bob Builder#2" 50
+/maxhealth all 200
+/wings "Bob Builder#2" pink
+/animationspeed all 2 0.05 0.2 10
+/speak all Ready for extraction!
+/chain all revive heal truck
+```
+
+HP, healing, and damage values accept integers `1..1000000`. Expression indices accept `0..1000` and must exist at runtime. Knockback accepts `0..10000`; flicker and animation/pupil multipliers accept `0..100`. Timed effects accept `0.1..3600` seconds. Animation transition values accept `0.001..100`. Pupil priority accepts integers `0..1000`, springs `0.001..1000`, and damping `0.001..100`. Non-finite numbers and surplus arguments are rejected.
+
+Granted clients can execute every player command through the host. The host and anyone submitting these commands need this version. Target characters also need **RepoCommandConsole 2.1.0+** for expression, animation speed, pupils, and falling, because those effects run on the character owner after host authorization. No extra grant is required just to be a target. Other actions use vanilla host-compatible RPCs. AllPlayerCommands itself is not required.
+
+Targets are captured when execution begins; later joiners are not added to an in-flight `all` command. Work is batched and reports applied, skipped, failed, and planned action counts. Health/death changes are observed before completion; owner effects require acknowledgement. RPC-driven visual/physics actions report dispatch, not proof that every peer rendered the effect. A chain stops after a failed step. Sustained wings/tumble/falling stop when revoked, the target dies/leaves, or the room/host changes; falling uses a short owner lease and may take up to two seconds to expire. Completed one-shot changes are not undone by revoke. Maximum HP is a runtime change, not a permanent upgrade purchase.
+
 ## Permissions
 
 ```text
@@ -60,7 +103,7 @@ Examples:
 
 Autocomplete follows the local role. The host sees `/grant`, `/revoke`, and eligible player selectors; a non-host client does not see those host-management suggestions even if granted. All clients still receive command, target, count, and location completion.
 
-An ungranted client can open, close, and autocomplete in the console, and can use `/help` or `/permissions`, but spawn/despawn requests are rejected by the host. Authorization is rechecked while a remote request is queued and while batched work runs, so leaving the room or changing host stops remaining work with an error. A completed `/revoke` rejects the client's next queued or newly submitted mutation.
+An ungranted client can open, close, and autocomplete in the console, and can use `/help` or `/permissions`, but spawn/despawn and player-action requests are rejected by the host. Authorization is rechecked while a remote request is queued and while batched work runs, so leaving the room or changing host stops remaining work with an error. A completed `/revoke` rejects the client's next queued or newly submitted mutation.
 
 ## Help
 
@@ -76,11 +119,13 @@ Every semantic position has its own candidate set:
 
 | Position | Candidates |
 |---|---|
-| Command | `/spawn`, `/despawn`, `/grant`, `/revoke`, `/permissions`, `/help` |
+| Command | Spawn/despawn, all full-word player commands above, grant/revoke, permissions, help |
 | Spawn/despawn target | Live REPOLib item, valuable, and enemy catalogs |
 | Spawn argument after target | `1..500` and both locations; choosing a location keeps count at `1` |
 | Spawn location after a numeric count | `player-location`, `random-non-collision-location` |
 | Despawn count | `1..500`, plus `all` |
 | Grant/revoke player | Current Photon room players, host only |
+| Player-action target | `all` and every current character, including host/dead characters; available on clients too |
+| Player-action options | Appropriate modes, common numbers, or supported chain actions; speech is free text |
 
-For non-host clients, the command row omits `/grant` and `/revoke`, and the player row is unavailable. Ranking prefers exact, prefix, substring, subsequence, then bounded Damerau-Levenshtein typo matches. Execution never silently chooses a fuzzy target: accept a canonical suggestion first.
+For non-host clients, the command row omits `/grant` and `/revoke`, and grant/revoke player suggestions are unavailable. Player-action targeting remains available. Ranking prefers exact, prefix, substring, subsequence, then bounded Damerau-Levenshtein typo matches. Execution never silently chooses a fuzzy target: accept a canonical suggestion first.

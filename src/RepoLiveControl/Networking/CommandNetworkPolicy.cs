@@ -108,7 +108,8 @@ namespace RepoLiveControl.Networking
             kind = (string)values[2];
             requestId = (string)values[3];
             payload = (string)values[4];
-            return kind == RequestKind || kind == ResponseKind || kind == NoticeKind;
+            return kind == RequestKind || kind == ResponseKind || kind == NoticeKind ||
+                kind == "player-effect" || kind == "player-effect-result";
         }
 
         public static bool IsHostOnlyVerb(string command)

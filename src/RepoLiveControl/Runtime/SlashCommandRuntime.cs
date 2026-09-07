@@ -22,6 +22,9 @@ namespace RepoLiveControl.Runtime
             ParsedSlashCommand command = parsed.Command;
             switch (command.Kind)
             {
+                case SlashCommandKind.PlayerAction:
+                    PlayerActionRuntime.Begin(request, command.PlayerAction);
+                    return false;
                 case SlashCommandKind.Help:
                     Bridge.Complete(request, HelpText());
                     return false;
@@ -156,7 +159,10 @@ namespace RepoLiveControl.Runtime
             return "OK Commands: /spawn <item:|valuable:|enemy:name> [count=1] " +
                    "[player-location|random-non-collision-location]; " +
                    "/despawn <target> [count=all]; /grant <player>; /revoke <player>; " +
-                   "/permissions; /help. Use Up/Down and Tab for fuzzy autocomplete.";
+                   "/permissions; /help. Player commands take <player|all>: " +
+                   string.Join(", ", PlayerActionCommands.Names) +
+                   ". /heal <player|all> [full|amount]; /chain <player|all> revive heal truck. " +
+                   "Use Up/Down and Tab for fuzzy commands, players, and options.";
         }
     }
 }

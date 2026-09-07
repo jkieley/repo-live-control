@@ -35,6 +35,14 @@ client console
 
 The payload never supplies a trusted actor identity. Responses and permission notices are accepted only from the current Master Client. `/grant` and `/revoke` are blocked before a remote command reaches the host queue and checked again by the runtime. Each client permits one pending host request, expires it after 30 seconds, and fails it immediately on room/session or host changes. The host bounds accepted work to two outstanding requests per actor and 32 overall.
 
+## Player actions and owner effects
+
+`PlayerActionCommands` supplies the full-word grammar, defaults, numeric/mode validation, and completion options. `RuntimePlayerCatalog` includes live and inactive dead characters, preserves actor identity, and never uses fuzzy matching during execution. `/chain` sequences a fixed target snapshot using full action names.
+
+`PlayerActionRuntime` advances player jobs on the host's game thread while allowing ordinary command dispatch between frames. It reuses each `ControlRequest`'s original session and grant validator. Health and death operations observe the resulting state, while visual/physics calls report successful dispatch. Persistent tumble/wings/falling have leases bound to the original request, so revocation or host changes stop them.
+
+Vanilla expression and animation RPCs only accept the character owner. `PlayerEffectRelay` routes the host's approved effect to that owner and waits for an acknowledgement; the owner never gets a general executor. The restricted policy validates the current host, exact character label, Photon view ID, timestamp, and verb. Pupils also run through the owner so their local timer expires correctly; falling renews a short owner lease. A narrow Harmony prefix on `PlayerAvatar.FallingSet` preserves an approved falling override while its lease is valid. No vanilla RPC authority check is weakened.
+
 ## Permission lifetime
 
 The host keeps an in-memory set of granted Photon actor numbers. It prunes players who leave and increments the permission-session revision while clearing all grants on room entry/exit, room-name change, or Master Client change. Queued and active remote mutations require their original revision and, for non-public verbs, the actor's live grant. This avoids persisting a grant to a different lobby or implicitly trusting players after host migration.
