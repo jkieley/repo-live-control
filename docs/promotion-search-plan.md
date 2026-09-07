@@ -4,31 +4,34 @@ Audited September 7, 2026; updated for the authorized 2.1.0 promotion work. The 
 
 ## Implementation status
 
-- Applied to the working tree: readable README heading, player-focused introduction and short description, implemented 2.1.0 player features, direct installation/tutorial links, and the existing three-image gameplay gallery. The screenshots retain their 2.0.0 capture label and immutable URLs from the published 2.0.1 update.
-- The selected **Console Companion** mascot has replaced the package icon locally.
+- Published with [RepoCommandConsole 2.1.0 on Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/): readable README heading, player-focused introduction and short description, implemented 2.1.0 player features, direct installation/tutorial links, and the three-image gameplay gallery. The screenshots retain their 2.0.0 capture label and immutable URLs from the published 2.0.1 update.
+- The selected **Console Companion** mascot is now the published package icon.
 - Applied on GitHub: About description, canonical Thunderstore homepage link, and seven relevant topics. The empty metadata finding below is now resolved.
-- Created a [complete tutorial](promotion/getting-started.md), [Steam-ready BBCode](promotion/steam-guide.bbcode), and [campaign kit](promotion/campaign-kit.md) containing a short announcement, creator outreach draft, three researched promotion targets, and a 45-second recording script.
-- The campaign kit distinguishes prepared materials from sent messages or recorded footage. Publication and outreach should be recorded with their actual destination URLs when completed; prepared copy is not itself a published post or a video.
+- Published the [complete tutorial on GitHub](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md), linked from the package README. The [Steam-ready BBCode](promotion/steam-guide.bbcode) is prepared; publishing it as a Steam guide awaits the user's Steam login.
+- Published the [GitHub 2.1.0 release](https://github.com/jkieley/repo-live-control/releases/tag/v2.1.0) on September 7, 2026 at **17:35:45 UTC**, with the release ZIP and a **56-second, 720p, silent captioned screenshot walkthrough**: [MP4](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.mp4), [SRT captions](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.srt), and [poster](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo-poster.jpg). This walkthrough uses the existing gameplay screenshots; it is not a live recording of 2.1.0 player actions.
+- The [campaign kit](promotion/campaign-kit.md) contains the announcement, creator outreach draft, and three researched targets. Community posts and creator messages remain prepared, awaiting confirmed destinations and account access; none have been sent. Its separate 45-second live-gameplay recording script is a future capture plan.
 - Keep live two-player acceptance separate from automated validation of the new commands. The current automated suites pass, but no cross-client gameplay verification claim is made here.
+
+These publication changes are complete; no search-ranking improvement has been measured or claimed.
 
 ## What the audit found
 
 - The [Thunderstore listing](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) appeared in web searches for `repo command console`, `"repo command console"`, and its exact package name. The page is discoverable already. These are search-tool observations, not a verified Google rank or search-volume measurement.
-- The current summary leads with networking terminology rather than the useful actions players search for. The README has helpful installation instructions, commands, and multiplayer answers, but its opening section sends people to an external Steam guide before showing the mod in action.
-- The public [GitHub repository](https://github.com/jkieley/repo-live-control) has no About description, homepage, or topics; the public GitHub API confirmed these fields are empty. The repository name also differs from the published mod name, making a clear About description especially useful.
+- The previous summary led with networking terminology rather than the useful actions players search for. The README had helpful installation instructions, commands, and multiplayer answers, but its opening section sent people to an external Steam guide before showing the mod in action. The published 2.1.0 copy resolves those presentation issues.
+- The public [GitHub repository](https://github.com/jkieley/repo-live-control) initially had no About description, homepage, or topics; the public GitHub API confirmed these fields were empty. They are now populated. The repository name still differs from the published mod name, making the About description especially useful.
 - Related spawning searches surface established tools such as [EnemySpawning](https://thunderstore.io/c/repo/p/NachitoSMO/EnemySpawning/) and [EnemySpawn](https://thunderstore.io/c/repo/p/XiaohaiMod/EnemySpawn/). Useful differentiation is the searchable F2 console, spawning across multiple catalogs, and host-granted friend access. This is an opportunity hypothesis, not evidence of keyword demand or competitor conversion rates.
 
-## Priorities
+## Original priorities and outcome
 
 | Priority | Proposal | Purpose |
 | --- | --- | --- |
-| 1 | Use the readable phrase **REPO Command Console** in the README heading and identify **RepoCommandConsole** immediately below it. | Connect the search phrase to the exact installable package. |
-| 1 | Replace the short description with the player-focused draft below. | Make search snippets and mod-manager list entries explain what the mod does. |
-| 1 | Place 2–3 genuine gameplay screenshots near the opening explanation, with captions describing the visible action. | Let visitors evaluate the actual interface and results quickly. |
-| 1 | Fill GitHub About, set its website to the canonical Thunderstore package URL, and add relevant topics. | Connect GitHub visitors to installation and improve GitHub topic discovery. |
-| 2 | Reorder the page: introduction, screenshots, install/first spawn, features, command reference, multiplayer, troubleshooting, external references. | Reduce the distance from discovering the mod to using it. |
-| 2 | Use descriptive headings such as “How to spawn items and enemies in R.E.P.O.” and “How to open the console: press F2.” | Answer useful searches in visible content without repeating keyword lists. |
-| 2 | Create a short demonstration video and one complete tutorial, then share where mod promotion is welcome. | Reach people searching for the task rather than the mod's existing name. |
+| 1 | **Published:** readable **REPO Command Console** heading and exact **RepoCommandConsole** package name in the introduction. | Connect the search phrase to the exact installable package. |
+| 1 | **Published:** player-focused short description with 2.1.0 features. | Make search snippets and mod-manager list entries explain what the mod does. |
+| 1 | **Published:** three genuine gameplay screenshots with captions. | Let visitors evaluate the actual interface and results quickly. |
+| 1 | **Applied:** GitHub About, canonical Thunderstore homepage, and relevant topics. | Connect GitHub visitors to installation and improve GitHub topic discovery. |
+| 2 | **Published:** installation and first commands appear before the external item guide. | Reduce the distance from discovering the mod to using it. |
+| 2 | **Published:** descriptive spawning and F2 controls headings. | Answer useful searches in visible content without repeating keyword lists. |
+| 2 | **Published:** screenshot walkthrough and complete GitHub tutorial. Steam publication and community/creator distribution await login, destinations, and access. | Reach people searching for the task rather than the mod's existing name. |
 | 3 | Consider a small official documentation site with a real command tutorial and links to Thunderstore. | Gain control over page titles, metadata, indexing tools, and traffic measurement if ongoing promotion warrants the maintenance. |
 
 Google can use prominent headings when generating title links, and uses page content as the main source of snippets. Clear descriptive copy helps it understand the page; it does not guarantee a particular title, snippet, or ranking. [Title guidance](https://developers.google.com/search/docs/appearance/title-link), [snippet guidance](https://developers.google.com/search/docs/appearance/snippet).
@@ -63,7 +66,7 @@ Capture filenames can describe the actual content, such as `repo-command-console
 
 ## Promotion ideas
 
-Create a 30–60 second demonstration covering F2, autocomplete, one spawn, and cleanup. A longer tutorial can cover installation and granting a friend access. Use the exact mod name and a direct install link in each description. A Steam guide, release announcement in an appropriate modding channel, and outreach to creators who already demonstrate R.E.P.O. mods are sensible experiments. Use the real screenshots and a small press kit with the chosen logo, short description, and compatibility details. No outreach or messages have been sent as part of this audit. Community engagement and useful content promotion are consistent with [Google's starter guidance](https://developers.google.com/search/docs/fundamentals/seo-starter-guide).
+The published 56-second screenshot walkthrough and complete GitHub tutorial provide reusable promotion material. The next recording opportunity is live footage of the 2.1.0 player commands, using the separate future script in the campaign kit. Steam guide publication, an announcement in the appropriate modding channel, and creator outreach remain prepared work awaiting login, destinations, or access. No community posts or creator messages have been sent. Community engagement and useful content promotion are consistent with [Google's starter guidance](https://developers.google.com/search/docs/fundamentals/seo-starter-guide).
 
 ## Platform limits and guardrails
 

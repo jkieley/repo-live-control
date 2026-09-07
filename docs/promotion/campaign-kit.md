@@ -1,10 +1,12 @@
 # RepoCommandConsole promotion kit
 
-Prepared September 7, 2026 for version 2.1.0. The copy below is ready for publication once the corresponding release is live. No community posts or creator messages were sent while preparing it.
+Updated September 7, 2026 after version 2.1.0 was published on Thunderstore and GitHub. The refreshed README, feature description, tutorial links, gameplay gallery, and selected Console Companion mascot are published. GitHub About, homepage, and topics are applied. The announcement and outreach text below remain prepared copy; no community posts or creator messages have been sent.
 
 ## Canonical links and assets
 
 - [Install on Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/)
+- [GitHub 2.1.0 release](https://github.com/jkieley/repo-live-control/releases/tag/v2.1.0), published September 7, 2026 at 17:35:45 UTC
+- [Release ZIP](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/Coollectors-RepoCommandConsole-2.1.0.zip)
 - [Getting-started tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
 - [Command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
 - [Selected Console Companion package icon](https://github.com/jkieley/repo-live-control/blob/main/thunderstore/icon.png)
@@ -13,11 +15,30 @@ Prepared September 7, 2026 for version 2.1.0. The copy below is ready for public
 
 The existing screenshots show the 2.0.0 autocomplete/spawn/despawn interface. Label them accordingly; they do not demonstrate the new 2.1.0 player effects. Use the chosen mascot consistently across the listing and promotional assets.
 
+## Published screenshot walkthrough
+
+The release includes a **56-second, 720p, silent captioned screenshot walkthrough**, built from the existing genuine gameplay captures:
+
+- [Watch or download the MP4](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.mp4)
+- [SRT caption file](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.srt)
+- [Walkthrough poster](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo-poster.jpg)
+
+This published video explains the console through screenshots. It is separate from the future live-gameplay recording script below and does not establish live 2.1.0 player-command or two-client acceptance.
+
+## Distribution status
+
+- **Published:** Thunderstore 2.1.0 page and package, GitHub README/tutorial/source, selected mascot, updated GitHub metadata, release ZIP, and screenshot walkthrough assets.
+- **Prepared, awaiting the user's Steam login:** [Steam guide BBCode](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/steam-guide.bbcode). No Steam guide publication is claimed.
+- **Prepared, awaiting confirmed destinations and account access:** community announcement and creator outreach. No posts or messages have been sent.
+- **Future capture:** the 45-second live-gameplay sequence below, including actual 2.1.0 player-command footage.
+
+No search-ranking change has been measured or claimed.
+
 ## One-sentence pitch
 
 RepoCommandConsole is a free R.E.P.O. mod that puts item and enemy spawning, team recovery, player commands, and fuzzy autocomplete in a separate F2 console with host-controlled access.
 
-## Short release announcement
+## Prepared short release announcement
 
 **REPO Command Console 2.1.0: spawning, team recovery, and player commands**
 
@@ -49,7 +70,9 @@ A compact video could show autocomplete, spawn a loadout, introduce one enemy, t
 
 These are concrete destinations to evaluate, not endorsements or commitments from their operators. Do not post the same announcement into unrelated discussions or ask for votes, ratings, or reciprocal links.
 
-## 45-second demonstration script
+## Future 45-second live-gameplay recording script
+
+This is a proposed new recording, not the script or runtime of the published 56-second screenshot walkthrough.
 
 Suggested title: **REPO Command Console: Spawn Items, Revive Players, and Recover Your Team**
 
@@ -61,9 +84,9 @@ Suggested title: **REPO Command Console: Spawn Items, Revive Players, and Recove
 | 23–36 seconds | Record a real 2.1.0 recovery sequence and result | “Player commands include revive, heal, summon, and truck return. Chains run supported actions in order.” |
 | 36–45 seconds | Show the install page and requirements | “Find RepoCommandConsole by Coollectors on Thunderstore. The host controls who can use commands.” |
 
-Record the feature sequence being claimed before publishing. Automated command and transport tests do not substitute for a real two-player capture. A screenshot slideshow can explain the existing console, but should not be labeled footage of newly added player actions. The recording script is prepared; no new gameplay video is claimed by this document.
+Record the feature sequence being claimed before publishing this future video. Automated command and transport tests do not substitute for a real two-player capture. The already-published screenshot walkthrough explains the existing console; it is not footage of the newly added player actions. This live recording remains a prepared script.
 
-Description:
+Proposed description for the future live recording:
 
 > Learn how to use RepoCommandConsole for R.E.P.O.: open the F2 console, spawn items with fuzzy autocomplete, clean up mod-spawned objects, and use player commands. Install: https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/ . Tutorial and multiplayer requirements: https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md . The demonstration uses the versions shown on screen.
 
