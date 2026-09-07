@@ -1,6 +1,6 @@
 # REPO Command Console: spawn items, revive players, and run your first commands
 
-This tutorial covers **RepoCommandConsole 2.1.0** for R.E.P.O. Start with one item, learn autocomplete, then try the player commands. The mod uses a separate `F2` console with host-controlled multiplayer permissions.
+This tutorial covers **RepoCommandConsole 2.2.0** for R.E.P.O. Browse equipment and loot with compact previews, spawn your first item, then try the player commands. The mod uses a separate `F2` console with host-controlled multiplayer permissions.
 
 [Install RepoCommandConsole](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Complete command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
 
@@ -12,11 +12,15 @@ This tutorial covers **RepoCommandConsole 2.1.0** for R.E.P.O. Start with one it
 4. Choose **Start Modded**, then enter a lobby or run.
 5. Press **F2** to open the console.
 
-This version targets R.E.P.O. **v0.4.4.3**. For multiplayer, the host and everyone who wants to submit commands need the mod. Use 2.1.0 or newer for the player commands in this guide. AllPlayerCommands is not required.
+This version targets R.E.P.O. **v0.4.4.3**. For multiplayer, the host and everyone who wants to submit commands need the mod. Use **2.2.0** for the full scrollable catalog, previews, and aliases described here. AllPlayerCommands is not required.
 
 ## 2. Find an item without memorizing its internal name
 
-Type `/spawn`, use **Up/Down** to highlight the command, and press **Tab**. Type `strength`, then select the live **Strength Upgrade** item suggestion and press **Tab** again. Autocomplete supplies the catalog prefix and quotes. Press **Enter** to execute.
+Type `/spawn`. The full supported item, valuable, and enemy catalog opens immediately; a search query is optional. Move the pointer over the list and use the **mouse wheel**, drag the **scrollbar**, or press **Up/Down** to browse. Eight compact rows remain visible while the rest scroll into view. The number above the list shows the highlighted entry and total matches.
+
+Small previews help identify targets as you browse. An entry without a preview still has its name and can be selected. Click a row or highlight it and press **Tab** to insert its canonical name; this selects the target without executing the command.
+
+To find a particular item, type `/spawn strength`, select **item:Strength Upgrade**, and press **Tab**. Autocomplete supplies the catalog prefix and quotes. Press **Enter** to execute.
 
 The accepted command typically looks like:
 
@@ -26,17 +30,17 @@ The accepted command typically looks like:
 
 The default count is one, and the default location is the player who submitted the command. Read the result before submitting another command. Press **Escape** or **F2** to close the console and inspect the item.
 
-[See the actual autocomplete interface](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg). This screenshot was captured with version 2.0.0; other installed mods provide some surrounding HUD.
+[See an earlier in-game autocomplete screenshot](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg). It was captured with version 2.0.0 and does not show the new scrolling or previews; other installed mods provide some surrounding HUD.
 
-Fuzzy search helps you find names; execution uses the exact suggestion you accepted. When an example name is absent, select an available entry from your current game instead.
+Fuzzy search also recognizes verified alternative names. For example, `/spawn pistol` finds **item:Gun**, `defib` finds **item:Defibro**, and `light bridge` finds **item:Phase Bridge**. Accepting a suggestion inserts the canonical name without adding a duplicate browser row. If an example is absent, select an available entry from your current game instead.
 
 ## 3. Spawn equipment, valuables, or an enemy
 
-Targets come from three catalogs: `item:` for equipment, weapons and upgrades; `valuable:` for loot; and `enemy:` for enemies.
+Targets come from three catalogs: `item:` for equipment, weapons and upgrades; `valuable:` for loot; and `enemy:` for enemies. Include a prefix such as `/spawn item:` in your search to find that category. Supported resource entries also include cosmetic cases, enemy souls, and surplus money bags when available in the installed game.
 
 ```text
 /spawn "item:Strength Upgrade" 2 player-location
-/spawn "valuable:Diamond Display" 3 random-non-collision-location
+/spawn "valuable:Valuable Manor Diamond Display" 3 random-non-collision-location
 /spawn "enemy:Headman" 1 random-non-collision-location
 ```
 
@@ -46,7 +50,7 @@ Use autocomplete to confirm the target before running each example. `random-non-
 
 ```text
 /despawn "item:Strength Upgrade" all
-/despawn "valuable:Diamond Display" all
+/despawn "valuable:Valuable Manor Diamond Display" all
 /despawn "enemy:Headman" all
 ```
 
@@ -54,7 +58,7 @@ Despawn removes matching objects created by RepoCommandConsole. Normal level con
 
 ## 5. Revive, heal, gather, or return the party
 
-Player commands always need a target: choose **all**, or type part of a player's name and accept the autocomplete entry. Entries include an actor number, such as `"Bob Builder#2"`, to distinguish duplicate names. The host and dead characters are included. Up/Down reaches suggestions beyond the eight visible rows.
+Player commands always need a target: choose **all**, or type part of a player's name and accept the autocomplete entry. Entries include an actor number, such as `"Bob Builder#2"`, to distinguish duplicate names. The host and dead characters are included. The wheel, scrollbar, and Up/Down also reach player suggestions beyond the eight visible rows.
 
 ```text
 /revive all
@@ -97,7 +101,8 @@ For a visual example, select a player and try `/wings <player> pink`, then `/win
 ## Troubleshooting
 
 - **F2 does nothing:** confirm you used Start Modded, enabled the mod in the launched profile, installed both dependencies, and have not changed its toggle key in BepInEx configuration.
-- **No canonical target matches:** use Up/Down and Tab to accept a live catalog entry. Old screenshots and external name lists can differ from the installed catalog.
+- **No target matches:** clear the target text back to `/spawn`, then browse or search again and accept a live entry. Verified aliases help with familiar names, but arbitrary external names may differ from the installed catalog.
+- **A preview is blank:** select by its name; missing previews do not remove an otherwise supported target. A newly visible preview can take a moment to appear.
 - **Permission denied:** the host must grant access after you join the current room.
 - **An effect is unsupported:** confirm the host, command sender, and the target of an owner-applied effect are using 2.1.0 or newer.
 - **A command partially completes:** read the applied/skipped/failed result. Unavailable characters or failed placements can leave only part of a group affected.

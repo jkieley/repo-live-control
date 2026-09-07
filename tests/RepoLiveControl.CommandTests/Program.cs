@@ -43,6 +43,11 @@ internal static partial class Program
         Run("non-host fuzzy character and mode completion", PlayerActionCompletion);
         Run("full-word action chains and speech isolation", PlayerChainsAndSpeech);
         Run("owner effect sender target and view validation", OwnerEffectTrustBoundary);
+        Run("spawn browser includes complete catalog without a query", SpawnBrowserIncludesFullCatalog);
+        Run("spawn browser fuzzy selection preserves executable commands", SpawnBrowserFuzzySelection);
+        Run("target aliases search canonical rows without duplicates", CompletionTargetAliases);
+        Run("completion viewport scroll and keyboard reach full list", CompletionViewportNavigation);
+        Run("completion viewport handles filtering and partial rows", CompletionViewportFiltering);
         Run("spawn defaults", SpawnDefaults);
         Run("despawn defaults", DespawnDefaults);
         Run("quoted target and token spans", QuotedTargetAndTokenSpans);

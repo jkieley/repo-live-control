@@ -2,7 +2,24 @@
 
 Open the independent console with `F2`. It remains available when R.E.P.O. chat is disabled. Commands do not pass through the chat parser; `/speak` explicitly sends speech through the game's speech API.
 
-Use `Up` and `Down` to change the highlighted fuzzy match, `Tab` to replace only the active argument, `Enter` to execute, and `Escape` or `F2` to close. Autocomplete adds quotes when an entity or player name contains spaces.
+Use `Up` and `Down` to change the highlighted fuzzy match, `Tab` or a row click to replace only the active argument, `Enter` to execute, and `Escape` or `F2` to close. Autocomplete adds quotes when an entity or player name contains spaces. Selecting a suggestion does not execute the command.
+
+## Browse the catalog
+
+In **2.2.0**, typing `/spawn` opens the full supported target list without requiring a search query or trailing space. Scroll over the list with the mouse wheel, drag its scrollbar, or use `Up`/`Down`. The window keeps eight compact rows visible, with no total-result cap; keyboard selection stays in view. The counter above the list shows the selected position and total matches. The same scrolling controls work for other completion lists, including player selectors and counts.
+
+Target rows have small previews drawn from actual game icons or asset meshes when available. Previews load as entries come into view. Missing previews leave the target available by name; browsing does not spawn gameplay objects.
+
+Type after the command to filter, for example `/spawn strength`. Use `/spawn item:`, `/spawn valuable:`, or `/spawn enemy:` to narrow the list by kind. Fuzzy search also matches verified aliases, then inserts the canonical target:
+
+| Search name | Canonical target inserted |
+|---|---|
+| `Pistol` | `item:Gun` |
+| `Defib` or `Defibrillator` | `item:Defibro` |
+| `Light Bridge` | `item:Phase Bridge` |
+| `Diamond Display` | `valuable:Valuable Manor Diamond Display` |
+
+Aliases do not create duplicate rows. The catalog includes registered REPOLib targets and supported networked game resources, including cosmetic cases, enemy souls, and surplus money bags. Disabled, nonphysical, and removed prototype item fallbacks are excluded. Installed game content and other mods determine which targets are available.
 
 ## Spawn
 
@@ -11,7 +28,7 @@ Use `Up` and `Down` to change the highlighted fuzzy match, `Tab` to replace only
 /spawn <target> <location>    # count defaults to 1
 ```
 
-- `target` is a canonical autocomplete entry beginning with `item:`, `valuable:`, or `enemy:`.
+- `target` is a canonical autocomplete entry beginning with `item:`, `valuable:`, or `enemy:`. A recognized exact alias is also accepted when it identifies one target; accepting autocomplete is the easiest way to supply the canonical name.
 - `count` is an optional whole number from `1` through `500`.
 - `location` is either `player-location` or `random-non-collision-location`.
 - `location` may follow `target` directly; when count is omitted it must be the final argument and count defaults to `1`.
@@ -26,7 +43,7 @@ Examples:
 ```text
 /spawn "item:Strength Upgrade"
 /spawn "item:Strength Upgrade" random-non-collision-location
-/spawn "valuable:Diamond Display" 10 random-non-collision-location
+/spawn "valuable:Valuable Manor Diamond Display" 10 random-non-collision-location
 /spawn "enemy:Headman" 2 player-location
 ```
 
@@ -45,12 +62,12 @@ Examples:
 ```text
 /despawn "item:Strength Upgrade" 1
 /despawn enemy:all all
-/despawn "valuable:Diamond Display"
+/despawn "valuable:Valuable Manor Diamond Display"
 ```
 
 ## Player commands
 
-Every command below requires `<player|all>` as its first argument. Type part of a name and press `Tab` to accept `"Nickname#ActorNumber"`, or choose `all`. The list includes the host, yourself, other characters, and dead characters. Up/Down scrolls through all available suggestions. Names are resolved exactly at execution; ambiguous duplicate names and stale selectors fail rather than affecting a different character. Singleplayer offers `"Local Player#local"` and `all`.
+Every command below requires `<player|all>` as its first argument. Type part of a name and press `Tab` to accept `"Nickname#ActorNumber"`, or choose `all`. The list includes the host, yourself, other characters, and dead characters. The wheel, scrollbar, and Up/Down reach all available suggestions. Names are resolved exactly at execution; ambiguous duplicate names and stale selectors fail rather than affecting a different character. Singleplayer offers `"Local Player#local"` and `all`.
 
 | Command | Behavior / defaults |
 |---|---|
@@ -120,7 +137,7 @@ Every semantic position has its own candidate set:
 | Position | Candidates |
 |---|---|
 | Command | Spawn/despawn, all full-word player commands above, grant/revoke, permissions, help |
-| Spawn/despawn target | Live REPOLib item, valuable, and enemy catalogs |
+| Spawn/despawn target | Registered item, valuable, and enemy catalogs plus supported resource fallbacks; canonical names and verified aliases are searchable |
 | Spawn argument after target | `1..500` and both locations; choosing a location keeps count at `1` |
 | Spawn location after a numeric count | `player-location`, `random-non-collision-location` |
 | Despawn count | `1..500`, plus `all` |
@@ -128,4 +145,4 @@ Every semantic position has its own candidate set:
 | Player-action target | `all` and every current character, including host/dead characters; available on clients too |
 | Player-action options | Appropriate modes, common numbers, or supported chain actions; speech is free text |
 
-For non-host clients, the command row omits `/grant` and `/revoke`, and grant/revoke player suggestions are unavailable. Player-action targeting remains available. Ranking prefers exact, prefix, substring, subsequence, then bounded Damerau-Levenshtein typo matches. Execution never silently chooses a fuzzy target: accept a canonical suggestion first.
+For non-host clients, the command row omits `/grant` and `/revoke`, and grant/revoke player suggestions are unavailable. Player-action targeting remains available. Ranking prefers exact, prefix, substring, subsequence, then bounded Damerau-Levenshtein typo matches. Alias matches return the existing canonical row. Execution accepts exact canonical names or unambiguous verified aliases; it never silently chooses a fuzzy target. Accept a suggestion before executing a partial name or typo.

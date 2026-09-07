@@ -2,6 +2,15 @@
 
 All notable changes to RepoCommandConsole are documented here.
 
+## 2.2.0 - 2026-09-07
+
+- Added a full scrollable spawn catalog: enter `/spawn` without a search query, browse with the mouse wheel, scrollbar, or arrow keys, and keep fuzzy search for finding a particular target.
+- Removed the total autocomplete-result cap while retaining eight compact visible rows. Keyboard selection stays in view, and catalog refreshes preserve mouse scrolling.
+- Added small previews of actual game items, valuables, and enemies beside target names. Previews reuse native icons or render asset meshes without instantiating gameplay objects, use a bounded cache, and fall back to text when unavailable.
+- Expanded the supported catalog with ten verified network resources: four cosmetic cases, three enemy souls, and three surplus money bags. Disabled and removed prototype items remain excluded.
+- Added familiar guide names such as Pistol, Defib, and Light Bridge, plus shorter valuable names. Alias searches insert canonical targets without duplicating browser rows.
+- Added complete-catalog, fuzzy-alias, scrolling, keyboard, and catalog regression tests, plus compiled-plugin thumbnail isolation and installed-rendering-API checks in the standard test command.
+
 ## 2.1.0 - 2026-09-07
 
 - Added team recovery commands: revive, heal, summon, and truck return for one player or everyone, plus ordered command chains.

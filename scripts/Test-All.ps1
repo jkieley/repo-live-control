@@ -91,6 +91,13 @@ Invoke-DotNet -Arguments @(
     '--configuration', 'Release'
 )
 
+Write-Host 'Checking catalog resource filtering, aliases, and preview resolution...'
+Invoke-DotNet -Arguments @(
+    'run', '--project',
+    (Join-Path $repositoryRoot 'tests\RepoLiveControl.CatalogTests\RepoLiveControl.CatalogTests.csproj'),
+    '--configuration', 'Release'
+)
+
 Invoke-DotNet -Arguments @(
     'run',
     '--project',
@@ -117,4 +124,18 @@ if (-not (Test-Path -LiteralPath $releaseDll -PathType Leaf)) {
     throw "Release build did not produce the expected DLL: $releaseDll"
 }
 
-Write-Host "PASS: command/network tests and Release build completed: $releaseDll"
+Write-Host 'Checking thumbnail isolation and installed rendering APIs against the Release build...'
+Invoke-DotNet -Arguments @(
+    'run',
+    '--project',
+    (Join-Path $repositoryRoot 'tests\RepoLiveControl.PreviewSafetyTests\RepoLiveControl.PreviewSafetyTests.csproj'),
+    '--configuration',
+    'Release',
+    "-p:RepoProfilePath=$profilePath",
+    '--',
+    $repositoryRoot,
+    $gamePath,
+    $releaseDll
+)
+
+Write-Host "PASS: command/network, player API, catalog, thumbnail safety tests and Release build completed: $releaseDll"

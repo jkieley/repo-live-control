@@ -18,13 +18,13 @@ using UnityEngine.AI;
 
 namespace RepoLiveControl
 {
-    [BepInPlugin("com.jameskieley.repo.commandconsole", "REPO Command Console", "2.1.0")]
+    [BepInPlugin("com.jameskieley.repo.commandconsole", "REPO Command Console", "2.2.0")]
     [BepInDependency("REPOLib", BepInDependency.DependencyFlags.HardDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         internal const string PluginGuid = "com.jameskieley.repo.commandconsole";
         internal const string PluginName = "REPO Command Console";
-        internal const string PluginVersion = "2.1.0";
+        internal const string PluginVersion = "2.2.0";
 
         internal static Plugin Instance { get; private set; }
         internal static ManualLogSource Log { get; private set; }
@@ -34,6 +34,11 @@ namespace RepoLiveControl
 
         private void Awake()
         {
+            // Some game transitions remove the visible BepInEx manager even
+            // after Chainloader marks it persistent. Match BepInEx's own
+            // HideManagerGameObject protection before creating console state.
+            gameObject.hideFlags |= HideFlags.HideAndDontSave;
+            DontDestroyOnLoad(gameObject);
             Instance = this;
             Log = Logger;
             commandConsole = new CommandConsoleRuntime(this);
@@ -822,7 +827,7 @@ namespace RepoLiveControl
             var items = new List<Item>();
             var typeNames = new List<string>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (Item item in Items.AllItems)
+            foreach (Item item in RuntimeTargetCatalog.GetItems())
             {
                 if (item == null || string.IsNullOrWhiteSpace(item.itemName) ||
                     item.itemName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) < 0 ||
@@ -858,7 +863,7 @@ namespace RepoLiveControl
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool weaponsOnly = selector.Equals("weapon", StringComparison.OrdinalIgnoreCase) ||
                                selector.Equals("weapons", StringComparison.OrdinalIgnoreCase);
-            foreach (Item item in Items.AllItems)
+            foreach (Item item in RuntimeTargetCatalog.GetItems())
             {
                 if (item == null || string.IsNullOrWhiteSpace(item.itemName))
                     continue;
@@ -1020,7 +1025,7 @@ namespace RepoLiveControl
             }
 
             var registeredNames = new List<string>();
-            foreach (PrefabRef prefab in Valuables.AllValuables)
+            foreach (PrefabRef prefab in RuntimeTargetCatalog.GetValuables())
             {
                 if (prefab.Prefab != null)
                     registeredNames.Add(prefab.Prefab.name);
@@ -2132,7 +2137,7 @@ namespace RepoLiveControl
                 return null;
             }
 
-            var prefabs = Valuables.AllValuables;
+            var prefabs = RuntimeTargetCatalog.GetValuables();
             if (selector.Equals("random", StringComparison.OrdinalIgnoreCase))
                 return prefabs.Count == 0 ? null : prefabs[UnityEngine.Random.Range(0, prefabs.Count)];
 
@@ -2162,7 +2167,7 @@ namespace RepoLiveControl
             if (phys != null)
                 AddObjectName(names, phys.gameObject.name);
 
-            foreach (PrefabRef prefab in Valuables.AllValuables)
+            foreach (PrefabRef prefab in RuntimeTargetCatalog.GetValuables())
             {
                 if (prefab.Prefab == null)
                     continue;
@@ -2176,7 +2181,7 @@ namespace RepoLiveControl
 
             PrefabRef best = null;
             int bestLength = 0;
-            foreach (PrefabRef prefab in Valuables.AllValuables)
+            foreach (PrefabRef prefab in RuntimeTargetCatalog.GetValuables())
             {
                 if (prefab.Prefab == null)
                     continue;
@@ -2225,7 +2230,7 @@ namespace RepoLiveControl
 
         private static Item FindItem(string selector)
         {
-            var items = Items.AllItems;
+            var items = RuntimeTargetCatalog.GetItems();
             if (selector.Equals("random", StringComparison.OrdinalIgnoreCase))
                 return items.Count == 0 ? null : items[UnityEngine.Random.Range(0, items.Count)];
 
@@ -2246,7 +2251,7 @@ namespace RepoLiveControl
             {
                 if (item == null || string.IsNullOrWhiteSpace(item.itemName))
                     continue;
-                if (item.itemName.Equals(selector, StringComparison.OrdinalIgnoreCase))
+                if (item.itemName.Trim().Equals(selector, StringComparison.OrdinalIgnoreCase))
                     return item;
                 if (partial == null &&
                     item.itemName.IndexOf(selector, StringComparison.OrdinalIgnoreCase) >= 0)

@@ -14,17 +14,21 @@ namespace RepoLiveControl
     {
         private const string InputControlName = "RepoCommandConsole.Input";
         private const int WindowId = 198042;
-        private const int SuggestionLimit = 512;
         private const int VisibleSuggestions = 8;
+        private const float SuggestionRowHeight = 28f;
+        private const float ThumbnailSize = 24f;
 
         private readonly Plugin plugin;
         private readonly ConfigEntry<KeyCode> toggleKey;
         private readonly ConfigEntry<int> networkEventCode;
         private readonly List<string> history = new List<string>();
         private readonly ConsoleInputGate inputGate = new ConsoleInputGate();
+        private readonly RuntimeTargetPreviewService previews = new RuntimeTargetPreviewService();
 
         private Rect windowRect;
         private Vector2 resultScroll;
+        private Vector2 suggestionScroll;
+        private bool revealSelectedSuggestion = true;
         private string input = "/";
         private string result = "Ready. Type /help or use fuzzy autocomplete.";
         private IReadOnlyList<CompletionItem> suggestions = Array.AsReadOnly(new CompletionItem[0]);
@@ -47,6 +51,8 @@ namespace RepoLiveControl
         private GUIStyle inputStyle;
         private GUIStyle suggestionStyle;
         private GUIStyle selectedSuggestionStyle;
+        private GUIStyle targetSuggestionStyle;
+        private GUIStyle selectedTargetSuggestionStyle;
         private GUIStyle resultStyle;
         private Texture2D windowBackground;
         private Texture2D selectedBackground;
@@ -89,6 +95,7 @@ namespace RepoLiveControl
 
         internal void Update()
         {
+            previews.Update();
             Network.Update(IsNetworkSessionSceneActive());
             Bridge.PublishPermissionSessionRevision(Permissions.SessionRevision);
             if (observedPermissionSessionRevision != Permissions.SessionRevision)
@@ -123,13 +130,12 @@ namespace RepoLiveControl
             else if (TryAcceptInputAction(ConsoleInputAction.SelectPrevious, KeyCode.UpArrow) &&
                      suggestions.Count > 0)
             {
-                selectedSuggestion =
-                    (selectedSuggestion - 1 + suggestions.Count) % suggestions.Count;
+                MoveSuggestionSelection(-1);
             }
             else if (TryAcceptInputAction(ConsoleInputAction.SelectNext, KeyCode.DownArrow) &&
                      suggestions.Count > 0)
             {
-                selectedSuggestion = (selectedSuggestion + 1) % suggestions.Count;
+                MoveSuggestionSelection(1);
             }
             else if (TryAcceptInputAction(
                          ConsoleInputAction.Submit,
@@ -226,37 +232,19 @@ namespace RepoLiveControl
             completionCaretPosition = actualCaret;
             if (inputChanged || caretChanged)
             {
-                selectedSuggestion = 0;
-                RefreshSuggestions();
+                RefreshSuggestions(true);
             }
 
             GUILayout.Space(6f);
             GUILayout.Label("FUZZY AUTOCOMPLETE" + (suggestions.Count > 0 ?
-                "  " + (selectedSuggestion + 1) + "/" + suggestions.Count + " · Up/Down to browse" : ""), hintStyle);
+                "  " + (selectedSuggestion + 1) + "/" + suggestions.Count + " · Scroll or Up/Down to browse" : ""), hintStyle);
             if (suggestions.Count == 0)
             {
                 GUILayout.Label("No completion for the active argument.", hintStyle);
             }
             else
             {
-                int first = Mathf.Clamp(selectedSuggestion - VisibleSuggestions + 1, 0,
-                    Math.Max(0, suggestions.Count - VisibleSuggestions));
-                for (int index = first; index < Math.Min(suggestions.Count, first + VisibleSuggestions); index++)
-                {
-                    CompletionItem suggestion = suggestions[index];
-                    string prefix = index == selectedSuggestion ? "▶  " : "    ";
-                    GUIStyle style = index == selectedSuggestion
-                        ? selectedSuggestionStyle
-                        : suggestionStyle;
-                    if (GUILayout.Button(
-                        prefix + suggestion.Value,
-                        style,
-                        GUILayout.Height(28f)))
-                    {
-                        selectedSuggestion = index;
-                        AcceptSelectedSuggestion(true);
-                    }
-                }
+                DrawSuggestionBrowser();
             }
 
             GUILayout.FlexibleSpace();
@@ -279,7 +267,7 @@ namespace RepoLiveControl
                 completionCaretPosition = input.Length;
                 result = "Ready.";
                 history.Clear();
-                RefreshSuggestions();
+                RefreshSuggestions(true);
                 focusInput = true;
             }
             if (GUILayout.Button("Run", GUILayout.Height(30f)))
@@ -289,6 +277,65 @@ namespace RepoLiveControl
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
             GUI.DragWindow(new Rect(0f, 0f, windowRect.width, 44f));
+        }
+
+        private void DrawSuggestionBrowser()
+        {
+            // Keep the existing eight-row capacity; scrolling exposes the rest
+            // without expanding the window or allocating controls for every item.
+            float height = VisibleSuggestions * SuggestionRowHeight;
+            Rect viewport = GUILayoutUtility.GetRect(0f, height, GUILayout.ExpandWidth(true));
+            if (revealSelectedSuggestion)
+            {
+                suggestionScroll.y = CompletionListNavigation.RevealSelection(
+                    suggestionScroll.y, selectedSuggestion, suggestions.Count, SuggestionRowHeight, height);
+                revealSelectedSuggestion = false;
+            }
+            suggestionScroll.y = CompletionListNavigation.ClampScroll(
+                suggestionScroll.y, suggestions.Count, SuggestionRowHeight, height);
+            float contentWidth = Mathf.Max(1f, viewport.width - Mathf.Max(16f, GUI.skin.verticalScrollbar.fixedWidth) - 4f);
+            Rect content = new Rect(0f, 0f, contentWidth, Mathf.Max(height, suggestions.Count * SuggestionRowHeight));
+            suggestionScroll = GUI.BeginScrollView(viewport, suggestionScroll, content, false, true);
+            suggestionScroll.x = 0f;
+            int first = CompletionListNavigation.FirstVisible(
+                suggestionScroll.y, suggestions.Count, SuggestionRowHeight, height);
+            int end = CompletionListNavigation.EndVisible(
+                suggestionScroll.y, suggestions.Count, SuggestionRowHeight, height);
+            int clicked = -1;
+            for (int index = first; index < end; index++)
+            {
+                CompletionItem suggestion = suggestions[index];
+                bool target = suggestion.ArgumentIndex == 1 &&
+                    (suggestion.Value.StartsWith("item:", StringComparison.OrdinalIgnoreCase) ||
+                     suggestion.Value.StartsWith("valuable:", StringComparison.OrdinalIgnoreCase) ||
+                     suggestion.Value.StartsWith("enemy:", StringComparison.OrdinalIgnoreCase));
+                bool selected = index == selectedSuggestion;
+                GUIStyle style = target
+                    ? (selected ? selectedTargetSuggestionStyle : targetSuggestionStyle)
+                    : (selected ? selectedSuggestionStyle : suggestionStyle);
+                Rect row = new Rect(0f, index * SuggestionRowHeight, contentWidth, SuggestionRowHeight);
+                if (GUI.Button(row, (selected ? "▶  " : "    ") + suggestion.Value, style))
+                    clicked = index;
+                if (target)
+                {
+                    Texture thumbnail = previews.GetOrQueue(suggestion.Value);
+                    if (thumbnail != null)
+                        GUI.DrawTexture(new Rect(row.x + 4f, row.y + 2f, ThumbnailSize, ThumbnailSize),
+                            thumbnail, ScaleMode.ScaleToFit, true);
+                }
+            }
+            GUI.EndScrollView();
+            if (clicked >= 0)
+            {
+                selectedSuggestion = clicked;
+                AcceptSelectedSuggestion(true);
+            }
+        }
+
+        private void MoveSuggestionSelection(int direction)
+        {
+            selectedSuggestion = CompletionListNavigation.MoveSelection(selectedSuggestion, direction, suggestions.Count);
+            revealSelectedSuggestion = true;
         }
 
         private void HandleKeyboardEvent(Event current)
@@ -328,15 +375,14 @@ namespace RepoLiveControl
             {
                 if (AcceptGuiInput(ConsoleInputAction.SelectPrevious))
                 {
-                    selectedSuggestion =
-                        (selectedSuggestion - 1 + suggestions.Count) % suggestions.Count;
+                    MoveSuggestionSelection(-1);
                 }
                 current.Use();
             }
             else if (current.keyCode == KeyCode.DownArrow && suggestions.Count > 0)
             {
                 if (AcceptGuiInput(ConsoleInputAction.SelectNext))
-                    selectedSuggestion = (selectedSuggestion + 1) % suggestions.Count;
+                    MoveSuggestionSelection(1);
                 current.Use();
             }
             else if (current.keyCode == KeyCode.Return || current.keyCode == KeyCode.KeypadEnter)
@@ -488,8 +534,7 @@ namespace RepoLiveControl
             input = applied.Text;
             pendingCaretPosition = applied.CaretPosition;
             completionCaretPosition = applied.CaretPosition;
-            selectedSuggestion = 0;
-            RefreshSuggestions();
+            RefreshSuggestions(true);
             focusInput = true;
         }
 
@@ -509,19 +554,21 @@ namespace RepoLiveControl
                 grantPlayers,
                 revokePlayers,
                 RuntimePlayerCatalog.Selectors(),
-                canManagePermissions);
+                canManagePermissions,
+                RuntimeTargetCatalog.GetSearchAliases());
             RefreshSuggestions();
         }
 
-        private void RefreshSuggestions()
+        private void RefreshSuggestions(bool resetViewport = false)
         {
+            string selectedValue = selectedSuggestion >= 0 && selectedSuggestion < suggestions.Count
+                ? suggestions[selectedSuggestion].Value : null;
             try
             {
                 suggestions = CommandCompletionEngine.GetCompletions(
                     input,
                     Mathf.Clamp(completionCaretPosition, 0, input == null ? 0 : input.Length),
-                    catalog,
-                    SuggestionLimit);
+                    catalog);
             }
             catch (Exception exception)
             {
@@ -529,8 +576,29 @@ namespace RepoLiveControl
                 if (Plugin.Log != null)
                     Plugin.Log.LogWarning("Could not refresh command suggestions: " + exception.Message);
             }
-            if (selectedSuggestion >= suggestions.Count)
+            if (resetViewport || suggestions.Count == 0)
+            {
                 selectedSuggestion = 0;
+                suggestionScroll = Vector2.zero;
+                revealSelectedSuggestion = true;
+            }
+            else
+            {
+                // Periodic catalog refreshes must not drag a wheel-scrolled
+                // viewport back to the keyboard selection at the top.
+                int previousSelection = selectedSuggestion;
+                selectedSuggestion = Mathf.Clamp(selectedSuggestion, 0, suggestions.Count - 1);
+                for (int index = 0; selectedValue != null && index < suggestions.Count; index++)
+                {
+                    if (suggestions[index].Value.Equals(selectedValue, StringComparison.Ordinal))
+                    {
+                        selectedSuggestion = index;
+                        break;
+                    }
+                }
+                if (previousSelection >= suggestions.Count)
+                    revealSelectedSuggestion = true;
+            }
         }
 
         private string RoleLabel()
@@ -646,11 +714,18 @@ namespace RepoLiveControl
             suggestionStyle.alignment = TextAnchor.MiddleLeft;
             suggestionStyle.fontSize = 15;
             suggestionStyle.normal.textColor = new Color(0.86f, 0.9f, 0.91f);
+            suggestionStyle.wordWrap = false;
+            suggestionStyle.clipping = TextClipping.Clip;
 
             selectedSuggestionStyle = new GUIStyle(suggestionStyle);
             selectedSuggestionStyle.normal.background = selectedBackground;
             selectedSuggestionStyle.normal.textColor = new Color(0.35f, 1f, 0.56f);
             selectedSuggestionStyle.fontStyle = FontStyle.Bold;
+
+            targetSuggestionStyle = new GUIStyle(suggestionStyle);
+            targetSuggestionStyle.padding = new RectOffset(32, 8, 0, 0);
+            selectedTargetSuggestionStyle = new GUIStyle(selectedSuggestionStyle);
+            selectedTargetSuggestionStyle.padding = new RectOffset(32, 8, 0, 0);
 
             resultStyle = new GUIStyle(GUI.skin.box);
             resultStyle.alignment = TextAnchor.UpperLeft;
@@ -670,6 +745,7 @@ namespace RepoLiveControl
 
         public void Dispose()
         {
+            previews.Dispose();
             Network.Dispose();
             Permissions.Reset();
             if (windowBackground != null)

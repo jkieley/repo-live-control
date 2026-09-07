@@ -2,7 +2,7 @@
 
 **Spawn enemies and items, revive your team, and control the next run from one searchable F2 console.**
 
-RepoCommandConsole is a free in-game command console mod for **R.E.P.O.** Spawn enemies, weapons, upgrades, items, and valuables from your live game catalog. Version **2.1.0** adds player commands for healing, reviving, summoning, returning to the truck, and more. Press `F2`, find a command or target with fuzzy autocomplete, and run it. The host controls multiplayer access and can grant friends permission to use the commands.
+RepoCommandConsole is a free in-game command console mod for **R.E.P.O.** Spawn enemies, weapons, upgrades, items, and valuables from your live game catalog. Version **2.2.0** adds a fully scrollable catalog with compact item previews, guide-friendly search names, and cosmetic cases, souls, and money bags. Press `F2`, browse or fuzzy-search a target, and run it. Heal, revive, summon players, or return them to the truck. The host controls multiplayer access and can grant friends permission to use the commands.
 
 [Install RepoCommandConsole on Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Step-by-step tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md) · [Video walkthrough (MP4)](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.mp4) · [All commands](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
 
@@ -49,16 +49,25 @@ Every friend who wants to open the console or submit commands must install the m
 ## How to spawn items and enemies in R.E.P.O.
 
 1. Press `F2` to open the console.
-2. Begin typing `/spawn`.
-3. Use `Up` and `Down` to highlight the command, then press `Tab` to accept it.
-4. Type part of a target name, such as `head` or `strength`.
-5. Highlight the target you want and press `Tab` again. Autocomplete adds quotes when a name contains spaces.
+2. Type `/spawn` to open the complete spawn catalog.
+3. Scroll with the mouse wheel or scrollbar, or use `Up` and `Down` to move through every result.
+4. Optionally type part of a target name, such as `head`, `strength`, `pistol`, or `cosmetic`, to filter the list.
+5. Highlight the target you want and press `Tab`. Autocomplete adds the canonical target and quotes when a name contains spaces.
 6. Optionally choose a count and location with the same autocomplete flow.
 7. Press `Enter` to run the command.
 
-Accepting the autocomplete suggestion matters: fuzzy matching helps you find a target, but execution requires a canonical target from the live catalog rather than guessing what you meant.
+Accepting the autocomplete suggestion matters: fuzzy matching helps you find a target, while execution accepts canonical names or explicitly supported aliases. It does not guess from a misspelled command.
 
-## What's new in 2.1.0: player commands
+## What's new in 2.2.0: browse the whole catalog
+
+- **Scroll every result.** `/spawn` opens the full catalog. Mouse wheel, scrollbar, and arrow keys reach the entire list, with no total-results cap.
+- **Recognize items at a glance.** Compact 24-pixel previews use the game's native icons or actual prefab models while retaining eight visible rows. Custom shader effects may not appear in previews.
+- **Find familiar names.** Search aliases include Pistol, Defib, Light Bridge, and short valuable names; accepting a result inserts its canonical selector.
+- **Spawn more of the installed game.** The catalog includes four cosmetic cases, three enemy souls, and three surplus money bags missing from the standard valuable presets. Removed prototypes remain excluded.
+
+The [catalog coverage audit](https://github.com/jkieley/repo-live-control/blob/main/docs/catalog-coverage-audit.md) explains the additions and aliases. The available list follows your installed game and mods.
+
+## Player commands: recover and control your team
 
 - **Help the team recover.** Use `/revive`, `/heal`, `/summon`, and `/truck` for one selected character or `all`.
 - **Run actions in order.** `/chain all revive heal truck` revives eligible dead characters, heals the group, and returns them to the truck. A failed step stops the chain.
@@ -89,6 +98,7 @@ Every player command requires a target. Revive needs an available death head, an
 | `F2` | Open or close the console |
 | `Escape` | Close the console |
 | `Up` / `Down` | Change the highlighted suggestion |
+| Mouse wheel / scrollbar | Browse the entire result list |
 | `Tab` | Accept the highlighted suggestion for the active argument |
 | `Enter` | Run the command |
 

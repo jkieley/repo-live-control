@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace RepoLiveControl.Commands
 {
@@ -43,13 +44,24 @@ namespace RepoLiveControl.Commands
             IEnumerable<string> grantPlayers,
             IEnumerable<string> revokePlayers,
             IEnumerable<string> actionPlayers,
-            bool includeHostManagementCommands)
+            bool includeHostManagementCommands,
+            IDictionary<string, string[]> targetAliases = null)
         {
             Targets = CopyDistinct(targets);
             GrantPlayers = CopyDistinct(grantPlayers);
             RevokePlayers = CopyDistinct(revokePlayers);
             ActionPlayers = CopyDistinct(actionPlayers);
             IncludeHostManagementCommands = includeHostManagementCommands;
+            var aliases = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+            if (targetAliases != null)
+            {
+                foreach (var entry in targetAliases)
+                {
+                    if (!string.IsNullOrWhiteSpace(entry.Key))
+                        aliases[entry.Key] = CopyDistinct(entry.Value);
+                }
+            }
+            TargetAliases = new ReadOnlyDictionary<string, IReadOnlyList<string>>(aliases);
         }
 
         public static CompletionCatalog Empty
@@ -64,6 +76,8 @@ namespace RepoLiveControl.Commands
         public IReadOnlyList<string> RevokePlayers { get; private set; }
 
         public IReadOnlyList<string> ActionPlayers { get; private set; }
+
+        public IReadOnlyDictionary<string, IReadOnlyList<string>> TargetAliases { get; private set; }
 
         public bool IncludeHostManagementCommands { get; private set; }
 
@@ -141,6 +155,15 @@ namespace RepoLiveControl.Commands
         private static readonly IReadOnlyList<string> SpawnCountOrLocations =
             BuildSpawnCountOrLocations();
 
+        /// <summary>Returns every match for the scrollable browser without a display-sized result cap.</summary>
+        public static IReadOnlyList<CompletionItem> GetCompletions(
+            string input,
+            int caretPosition,
+            CompletionCatalog catalog)
+        {
+            return GetCompletions(input, caretPosition, catalog, int.MaxValue);
+        }
+
         public static IReadOnlyList<CompletionItem> GetCompletions(
             string input,
             int caretPosition,
@@ -160,7 +183,17 @@ namespace RepoLiveControl.Commands
                 caretPosition,
                 tokenization.Tokens);
 
+            // A complete /spawn verb opens the catalog immediately, even before
+            // the user enters a space or starts a fuzzy target query.
+            if (tokenization.Tokens.Count == 1 && caretPosition == input.Length &&
+                tokenization.Tokens[0].End == caretPosition &&
+                tokenization.Tokens[0].Value.Equals("/spawn", StringComparison.OrdinalIgnoreCase))
+            {
+                position = new CompletionPosition(1, caretPosition, 0, string.Empty);
+            }
+
             IEnumerable<string> source;
+            bool targetArgument = false;
             if (position.ArgumentIndex == 0)
             {
                 source = GetCommandNames(catalog);
@@ -182,6 +215,8 @@ namespace RepoLiveControl.Commands
                 }
                 else
                 {
+                    targetArgument = position.ArgumentIndex == 1 &&
+                        (kind == SlashCommandKind.Spawn || kind == SlashCommandKind.Despawn);
                     source = GetArgumentSource(
                         kind,
                         position.ArgumentIndex,
@@ -190,10 +225,9 @@ namespace RepoLiveControl.Commands
                 }
             }
 
-            IReadOnlyList<FuzzyMatch> matches = FuzzyMatcher.Rank(
-                position.Query,
-                source,
-                maxResults);
+            IReadOnlyList<FuzzyMatch> matches = targetArgument && catalog.TargetAliases.Count > 0
+                ? RankTargetsWithAliases(position.Query, source, catalog.TargetAliases, maxResults)
+                : FuzzyMatcher.Rank(position.Query, source, maxResults);
             var completions = new List<CompletionItem>(matches.Count);
             foreach (FuzzyMatch match in matches)
             {
@@ -205,6 +239,41 @@ namespace RepoLiveControl.Commands
                     position.ReplacementLength));
             }
             return completions.AsReadOnly();
+        }
+
+        private static IReadOnlyList<FuzzyMatch> RankTargetsWithAliases(
+            string query,
+            IEnumerable<string> targets,
+            IReadOnlyDictionary<string, IReadOnlyList<string>> aliases,
+            int maxResults)
+        {
+            var matches = new List<FuzzyMatch>();
+            int originalIndex = 0;
+            foreach (string target in targets)
+            {
+                int score = FuzzyMatcher.Score(query, target);
+                IReadOnlyList<string> targetAliases;
+                if (aliases.TryGetValue(target, out targetAliases))
+                {
+                    foreach (string alias in targetAliases)
+                    {
+                        int aliasScore = FuzzyMatcher.Score(query, alias);
+                        if (aliasScore != FuzzyMatcher.NoMatch)
+                            score = Math.Max(score, aliasScore - 1);
+                    }
+                }
+                if (score != FuzzyMatcher.NoMatch)
+                    matches.Add(new FuzzyMatch(target, score, originalIndex));
+                originalIndex++;
+            }
+            matches.Sort((left, right) =>
+            {
+                int byScore = right.Score.CompareTo(left.Score);
+                return byScore != 0 ? byScore : left.OriginalIndex.CompareTo(right.OriginalIndex);
+            });
+            if (matches.Count > maxResults)
+                matches.RemoveRange(maxResults, matches.Count - maxResults);
+            return matches.AsReadOnly();
         }
 
         public static CompletionApplication ApplyCompletion(
@@ -230,6 +299,12 @@ namespace RepoLiveControl.Commands
             }
 
             string replacement = CommandTokenizer.QuoteArgument(completion.Value);
+            if (completion.ArgumentIndex > 0 && completion.ReplacementLength == 0 &&
+                completion.ReplacementStart > 0 &&
+                !char.IsWhiteSpace(input[completion.ReplacementStart - 1]))
+            {
+                replacement = " " + replacement;
+            }
             string result = input.Substring(0, completion.ReplacementStart) +
                 replacement +
                 input.Substring(completion.ReplacementStart + completion.ReplacementLength);

@@ -9,3 +9,4 @@ dist/.package-stage-*
 repo-runtime-status.txt
 .vs/
 .idea/
+.local/

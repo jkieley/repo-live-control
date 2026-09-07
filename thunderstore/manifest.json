@@ -1,8 +1,8 @@
 {
   "name": "RepoCommandConsole",
-  "version_number": "2.1.0",
+  "version_number": "2.2.0",
   "website_url": "https://github.com/jkieley/repo-live-control",
-  "description": "R.E.P.O. command console: spawn enemies, items, weapons, upgrades and valuables; revive, heal, summon or return players to the truck. F2 fuzzy autocomplete, ordered command chains and host-controlled multiplayer access.",
+  "description": "REPO command console: spawn items, weapons, loot, enemies and cosmetic cases. Browse the full list with item previews and fuzzy search. Heal, revive, summon and return players to the truck, with host-controlled multiplayer permissions.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2305",
     "Zehs-REPOLib-4.2.0"
