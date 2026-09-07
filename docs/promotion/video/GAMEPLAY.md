@@ -2,11 +2,13 @@
 
 The current demo is `repo-command-console-2.2-gameplay.mp4`: 2 minutes 8.2 seconds of genuine, edited R.E.P.O. gameplay at 1920 × 1080 and 30 fps. It shows the F2 browser, fuzzy search, equipment, loot, money bags, cosmetic cases, Apex Predator, normal item pickup, and targeted cleanup. All excerpts run at their original speed; idle waits are removed. Captured game audio is retained, with no narration or added music. The selected mascot appears only in small intro/outro overlays over gameplay.
 
-The large MP4 and raw recordings remain in the local recording archive; distribute the final MP4 as a release asset. The earlier `repo-command-console-demo.mp4` is a separate, older screenshot walkthrough.
+The final MP4 is available as a [GitHub 2.2.0 release asset](https://github.com/jkieley/repo-live-control/releases/download/v2.2.0/repo-command-console-2.2-gameplay.mp4), with [English SRT captions](https://github.com/jkieley/repo-live-control/releases/download/v2.2.0/repo-command-console-2.2-gameplay.srt) and the [gameplay poster](https://github.com/jkieley/repo-live-control/releases/download/v2.2.0/repo-command-console-gameplay-poster.jpg). Raw recordings remain in the local archive. The earlier `repo-command-console-demo.mp4` is a separate, older screenshot walkthrough.
 
 Public destinations: [YouTube gameplay video](https://youtu.be/j_Qd60MG6VA) and [demo website](https://repo-command-console.jkieley543940.chatgpt.site). On September 7, 2026, YouTube confirmed publication and anonymous oEmbed returned HTTP 200 with the correct title and embeddable player. English captions and the custom gameplay poster are saved. The website returned HTTP 200 with the actual privacy-enhanced YouTube embed and VideoObject metadata. The final YouTube title is **REPO Command Console 2.2 — Spawn Items, Loot & Enemies | Real Gameplay**.
 
 YouTube requires the channel's one-time verification before external description links become clickable; the plain URLs remain visible.
+
+The [GitHub release](https://github.com/jkieley/repo-live-control/releases/tag/v2.2.0) was published at 2026-09-07 19:57:04 UTC. [Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) also reports 2.2.0 as its latest version. The public package downloads match at 275,694 bytes and SHA-256 `f5f019953e73c25ca3c8455f2379d9b4950392cebef3df69776899f753f5a042`; the packaged README links to the verified video and actual demo-site hostname.
 
 ## Upload assets
 

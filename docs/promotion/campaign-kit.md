@@ -1,13 +1,14 @@
 # RepoCommandConsole promotion kit
 
-**Updated September 7, 2026: the gameplay video and demo website are public; the 2.2.0 GitHub and Thunderstore releases are still pending.** Automated and targeted live checks have passed. Release announcements below are drafts for use after the new package is public. No community posts or creator messages have been sent.
+**Updated September 7, 2026: RepoCommandConsole 2.2.0 is public on GitHub and Thunderstore, with the gameplay video and demo website also public and verified.** Automated and targeted live checks have passed. Community announcements below remain unsent drafts. No community posts or creator messages have been sent.
 
 ## Current links and assets
 
 - [Thunderstore package page](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/)
+- [GitHub 2.2.0 release and downloads](https://github.com/jkieley/repo-live-control/releases/tag/v2.2.0)
 - [Public 2.2.0 gameplay video](https://youtu.be/j_Qd60MG6VA)
 - [Public demo website](https://repo-command-console.jkieley543940.chatgpt.site)
-- [Prepared 2.2.0 release notes](release-notes-2.2.0.md)
+- [2.2.0 release notes](release-notes-2.2.0.md)
 - [Getting-started tutorial](getting-started.md)
 - [Command reference](../commands.md)
 - [Catalog coverage and money-bag behavior](../catalog-coverage-audit.md)
@@ -20,12 +21,14 @@ The final 128.2-second gameplay video is public on YouTube as `j_Qd60MG6VA`. You
 
 YouTube still requires the channel's one-time verification before external description links become clickable. The plain URLs remain in the description; the public video and demo website are accessible.
 
+GitHub release `v2.2.0` was published at **2026-09-07 19:57:04 UTC**, targeting commit `253c16d98f0156d3d5f5aaeee8d2e90ae8d5f7e2`, with the package ZIP, gameplay MP4, English SRT, and poster. Thunderstore's public API reports 2.2.0 as the latest version and retains all five categories. Its anonymous package download matches GitHub: **275,694 bytes**, SHA-256 `f5f019953e73c25ca3c8455f2379d9b4950392cebef3df69776899f753f5a042`. The extracted README contains the correct video/site links and enemy screenshot. The final site returns HTTP 200 with its actual hostname in canonical metadata.
+
 ## Distribution status
 
 | Material | Status |
 | --- | --- |
-| Public package, GitHub release, mascot, and screenshot walkthrough | 2.1.0 published; historical assets remain available. |
-| 2.2.0 source, release notes, command reference, and tutorial | Prepared locally; full automated checks and targeted live acceptance passed. Publication pending; no two-client acceptance claimed. |
+| Historical package and screenshot walkthrough | 2.1.0 historical assets remain available and labeled by version. |
+| 2.2.0 package, source, release notes, command reference, and tutorial | GitHub and Thunderstore published and verified; matching package hash, five categories retained, final README links confirmed. No two-client acceptance claimed. |
 | New gameplay recording, YouTube upload, and website | Public and verified. YouTube publication and anonymous embed confirmed; English captions and custom poster saved. Website HTTP 200 with the video embed and VideoObject metadata. |
 | Steam guide | Existing [BBCode draft](steam-guide.bbcode); needs a 2.2.0 content review and authenticated publication. No published guide claimed. |
 | Community announcement and creator outreach | Prepared copy; destination rules and account access still need checking before sending. |
@@ -38,7 +41,7 @@ RepoCommandConsole is a free R.E.P.O. mod with a scrollable item and enemy catal
 
 ## Prepared short release announcement
 
-**Draft for publication after the 2.2.0 package is live.**
+**Draft community copy; not posted.**
 
 **REPO Command Console 2.2.0: browse the full spawn catalog with previews**
 
@@ -62,7 +65,7 @@ A compact demo could browse the catalog, search Pistol to find Gun, spawn and cl
 
 [Mod page](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Watch gameplay](https://youtu.be/j_Qd60MG6VA) · [Demo website](https://repo-command-console.jkieley543940.chatgpt.site) · [Tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
 
-Send this draft only after the 2.2.0 package is publicly available. The video and website already passed their public access checks.
+The package, video, and website are publicly available and verified. Check the intended destination and current posting rules before sending this draft.
 
 ## Researched promotion destinations
 
@@ -94,7 +97,7 @@ Prepared video description:
 
 > Browse the full supported spawn catalog in RepoCommandConsole 2.2.0 for R.E.P.O. Use compact previews, fuzzy search, and familiar aliases, then select a target and run the command. The mod also includes cleanup and player commands with host-controlled permissions. Install and requirements: https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/ . Tutorial: https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md . Gameplay uses the versions shown on screen.
 
-## Validation and final release checks
+## Validation and completed publication checks
 
 The full test command passed: 76 command/network scenarios, five simulated player-runtime/relay scenarios, 35 catalog/local-placement checks, 24 installed-game API contracts, nine compiled enemy-placement route/API contracts, **25** preview isolation/API checks, Windows PowerShell 5.1 compatibility, and a Release build with zero warnings or errors. Enemy `player-location` now searches within 3 metres, extends to 5 metres, and fails clearly if no walkable point exists; automated checks reject the former distant-roaming route.
 
@@ -104,8 +107,7 @@ The final enemy footage shows Apex Predator spawning near the player twice, walk
 
 A read-only live provider sweep produced upright actual-asset previews for **254 of 255** audited targets; Hidden has no visible model mesh and keeps its category placeholder. No real two-client acceptance or peer-visibility result has been established.
 
-1. Preserve the completed live evidence and its limits; keep every-variant and two-client behavior unverified unless separately observed.
-2. Preserve the verified public video/site URLs, English captions, and gameplay poster in the final package documentation.
-3. Package the final README, changelog, mascot, manifest, and matching 2.2.0 DLL; verify the ZIP entries and hashes.
-4. Publish the GitHub release and Thunderstore package, then verify public metadata, README, images, dependencies, and downloaded ZIP.
-5. Replace prepared-status wording with confirmed publication facts; publish outreach only to confirmed destinations with the user's authorization.
+- The final package contains the approved mascot, current README/changelog/manifest, and tested 2.2.0 DLL. GitHub and Thunderstore distribute the same verified ZIP.
+- YouTube and the demo website are public; English captions, custom poster, actual-host canonical metadata, and package links are recorded above.
+- Preserve the completed live evidence and its limits. Every-variant and two-client behavior remain unverified.
+- Community publication and creator outreach remain separate, unsent work; use confirmed destinations and the user's authorization.

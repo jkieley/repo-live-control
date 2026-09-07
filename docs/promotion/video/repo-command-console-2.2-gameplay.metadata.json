@@ -20,7 +20,17 @@
     "demo_site_url": "https://repo-command-console.jkieley543940.chatgpt.site",
     "demo_site_status": "public_http_200_youtube_embed_and_videoobject_verified",
     "verification_evidence": "YouTube publication confirmation; anonymous oEmbed HTTP 200 with correct title/author and iframe; site HTTP 200 with YouTube privacy-enhanced iframe and VideoObject",
-    "public_verified_utc": "2026-09-07T19:53:34Z"
+    "public_verified_utc": "2026-09-07T19:53:34Z",
+    "github_release_url": "https://github.com/jkieley/repo-live-control/releases/tag/v2.2.0",
+    "github_release_id": 384292103,
+    "github_release_published_utc": "2026-09-07T19:57:04Z",
+    "github_release_commit": "253c16d98f0156d3d5f5aaeee8d2e90ae8d5f7e2",
+    "gameplay_download_url": "https://github.com/jkieley/repo-live-control/releases/download/v2.2.0/repo-command-console-2.2-gameplay.mp4",
+    "thunderstore_url": "https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/",
+    "thunderstore_status": "latest_2.2.0_public_five_categories_and_package_hash_verified",
+    "package_bytes": 275694,
+    "package_sha256": "f5f019953e73c25ca3c8455f2379d9b4950392cebef3df69776899f753f5a042",
+    "package_verification": "Anonymous Thunderstore download matches GitHub; extracted README contains correct YouTube/site URLs and enemy screenshot"
   },
   "chapters": [
     {

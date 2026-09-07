@@ -6,7 +6,7 @@ REPO Command Console 2.2 — Spawn Items, Loot & Enemies | Real Gameplay
 
 [YouTube video `j_Qd60MG6VA`](https://youtu.be/j_Qd60MG6VA) was published on September 7, 2026. YouTube confirmed publication, and anonymous oEmbed returned HTTP 200 with the correct title, author, and embeddable player. English captions and the custom gameplay poster are saved. The [demo website](https://repo-command-console.jkieley543940.chatgpt.site) returned HTTP 200 with the video's privacy-enhanced embed and VideoObject metadata.
 
-The channel's one-time verification is still required for clickable external description links; plain URLs remain visible. This publication status note is not part of the video description. GitHub and Thunderstore 2.2.0 release publication is tracked separately in the campaign kit.
+The channel's one-time verification is still required for clickable external description links; plain URLs remain visible. The [GitHub 2.2.0 release](https://github.com/jkieley/repo-live-control/releases/tag/v2.2.0) and [Thunderstore package](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) are also public, and their package download hashes match. The [original gameplay MP4](https://github.com/jkieley/repo-live-control/releases/download/v2.2.0/repo-command-console-2.2-gameplay.mp4) is available from the release. This publication status note is not part of the video description.
 
 # Description
 
