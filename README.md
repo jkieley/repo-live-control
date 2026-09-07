@@ -4,6 +4,30 @@
 
 RepoCommandConsole is a free, host-authoritative in-game command console built for players who want more control over every run. Create challenge rooms, hand out upgrades, test loadouts, summon enemies, stage screenshots, or turn the next lobby into carefully managed chaos. Press `F2`, find what you want with fuzzy autocomplete, and spawn it without touching the game's chat.
 
+## See the console in game
+
+Click any screenshot to open the full-resolution image and read the command text.
+
+### Find a spawn with fuzzy autocomplete
+
+[![R.E.P.O. command console showing fuzzy autocomplete for spawn targets](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg)
+
+Start typing a target name to see matching entries from the live game catalog. Use the arrow keys and `Tab` to select a suggestion.
+
+### Run a spawn command
+
+[![RepoCommandConsole showing a successful spawn command in R.E.P.O.](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-spawn-success.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-spawn-success.jpg)
+
+The console confirms that three Strength Upgrades were spawned. They were placed elsewhere in the level in this demonstration.
+
+### Clean up your spawned objects
+
+[![RepoCommandConsole showing a successful despawn command in R.E.P.O.](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-despawn-success.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-despawn-success.jpg)
+
+The `/despawn` command removes the three Strength Upgrades created for the demonstration, and the console confirms the cleanup.
+
+These are genuine gameplay screenshots of RepoCommandConsole 2.0.0. Other installed mods contribute some of the surrounding HUD.
+
 > **Current compatibility:** R.E.P.O. `v0.4.4.3` or compatible  
 > **Required dependencies:** BepInExPack `5.4.2305` and REPOLib `4.2.0`
 

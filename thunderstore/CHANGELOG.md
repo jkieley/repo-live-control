@@ -2,6 +2,11 @@
 
 All notable changes to RepoCommandConsole are documented here.
 
+## 2.0.1 - 2026-09-07
+
+- Added real in-game screenshots of fuzzy autocomplete, a successful spawn command, and despawn cleanup to the package page.
+- Documentation-only package update; the plugin DLL, dependencies, and icon are unchanged from 2.0.0.
+
 ## 2.0.0 - 2026-08-26
 
 - Added a dedicated in-game command console that remains available when normal game chat is disabled.
