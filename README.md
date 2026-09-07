@@ -1,29 +1,37 @@
-# RepoCommandConsole
+# REPO Command Console
 
-**Spawn any enemy, weapon, item, or valuable exposed by R.E.P.O.'s live modding catalog at will—for you and your friends.**
+**Spawn enemies and items, revive your team, and control the next run from one searchable F2 console.**
 
-RepoCommandConsole is a free, host-authoritative in-game command console built for players who want more control over every run. Create challenge rooms, hand out upgrades, test loadouts, summon enemies, stage screenshots, or turn the next lobby into carefully managed chaos. Press `F2`, find what you want with fuzzy autocomplete, and spawn it without touching the game's chat.
+RepoCommandConsole is a free in-game command console mod for **R.E.P.O.** Spawn enemies, weapons, upgrades, items, and valuables from your live game catalog. Version **2.1.0** adds player commands for healing, reviving, summoning, returning to the truck, and more. Press `F2`, find a command or target with fuzzy autocomplete, and run it. The host controls multiplayer access and can grant friends permission to use the commands.
+
+[Install RepoCommandConsole on Thunderstore](https://thunderstore.io/c/repo/p/Coollectors/RepoCommandConsole/) · [Step-by-step tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md) · [Video walkthrough (MP4)](https://github.com/jkieley/repo-live-control/releases/download/v2.1.0/repo-command-console-demo.mp4) · [All commands](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
 
 > **Current compatibility:** R.E.P.O. `v0.4.4.3` or compatible  
 > **Required dependencies:** BepInExPack `5.4.2305` and REPOLib `4.2.0`
 
-## Find your next spawn
+## See the console in game
 
-**Visual item-and-valuables reference and idea catalog:**  
-https://steamcommunity.com/sharedfiles/filedetails/?id=3773432391
+Click a screenshot to open the full-resolution image and read the command text.
 
-This Steam guide covers shop goods, weapons, upgrades, drones, carts, and valuables found across locations. Steam may display a removed or incompatible warning, but the guide content is currently still readable.
+### Find a spawn with fuzzy autocomplete
 
-Use it for visual discovery and inspiration. It is not a list of enemies or guaranteed canonical console target strings. **The autocomplete shown in RepoCommandConsole is always the authoritative source for names you can spawn in your current game.**
+[![R.E.P.O. command console showing fuzzy autocomplete for spawn targets](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-autocomplete.jpg)
 
-## Why you and your friends will love playing with this mod
+Start typing a target name to see matching entries from the live game catalog. Use the arrow keys and `Tab` to select a suggestion.
 
-- **Build a custom run in seconds.** Spawn enemies, useful items, upgrades, and valuables exactly when the lobby needs them.
-- **Create memorable multiplayer moments.** Set up challenge encounters, rescue a struggling team, or give everyone the tools for a ridiculous experiment.
-- **Find targets without memorizing internal names.** Context-aware fuzzy autocomplete searches the live REPOLib item, valuable, and enemy catalogs.
-- **Keep the host in control.** Friends can use the console only after the host grants permission for the current room.
-- **Clean up without erasing the level.** Despawn commands affect only matching objects previously created by this mod.
-- **Leave vanilla chat alone.** The console is independent of chat and does not register, patch, or collide with the game's existing `/spawn` command.
+### Run a spawn command
+
+[![RepoCommandConsole showing a successful spawn command in R.E.P.O.](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-spawn-success.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-spawn-success.jpg)
+
+The console confirms that three Strength Upgrades were spawned. They were placed elsewhere in the level in this demonstration.
+
+### Clean up your spawned objects
+
+[![RepoCommandConsole showing a successful despawn command in R.E.P.O.](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-despawn-success.jpg)](https://raw.githubusercontent.com/jkieley/repo-live-control/166dbec2d6298abb351ef05fc1f8dfb250fb2e12/docs/promotion/screenshots/repo-command-console-despawn-success.jpg)
+
+The `/despawn` command removes the three Strength Upgrades created for the demonstration, and the console confirms the cleanup.
+
+These are genuine gameplay screenshots of RepoCommandConsole **2.0.0**, first published with the 2.0.1 page update. Other installed mods contribute some of the surrounding HUD. The player commands added in 2.1.0 are documented below.
 
 ## Install with Thunderstore or r2modman
 
@@ -38,7 +46,7 @@ Use it for visual discovery and inspiration. It is not a list of enemies or guar
 
 Every friend who wants to open the console or submit commands must install the mod in their own profile. Players without RepoCommandConsole can still join the lobby normally, but they cannot use its console.
 
-## Your first spawn
+## How to spawn items and enemies in R.E.P.O.
 
 1. Press `F2` to open the console.
 2. Begin typing `/spawn`.
@@ -50,7 +58,31 @@ Every friend who wants to open the console or submit commands must install the m
 
 Accepting the autocomplete suggestion matters: fuzzy matching helps you find a target, but execution requires a canonical target from the live catalog rather than guessing what you meant.
 
-### Controls
+## What's new in 2.1.0: player commands
+
+- **Help the team recover.** Use `/revive`, `/heal`, `/summon`, and `/truck` for one selected character or `all`.
+- **Run actions in order.** `/chain all revive heal truck` revives eligible dead characters, heals the group, and returns them to the truck. A failed step stops the chain.
+- **Choose players by name.** Fuzzy autocomplete includes the host and dead characters; actor numbers distinguish duplicate names.
+- **Stage a scene or experiment.** Additional commands cover health, damage, knockback, speech, expressions, wings, tumble, flashlights, animation speed, pupils, and falling.
+
+```text
+/revive all
+/heal all
+/summon all
+/truck all
+/chain all revive heal truck
+```
+
+Every player command requires a target. Revive needs an available death head, and heal applies to living characters. `/maxhealth` changes the current session's maximum health; it is not a permanent upgrade purchase. Characters receiving expression, animation-speed, pupil, or falling effects also need **2.1.0 or newer**. See [multiplayer requirements](#multiplayer-host-control-with-friend-access) and the [full player command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md#player-commands).
+
+## Built for custom runs
+
+- **Find targets without memorizing internal names.** Search the live item, valuable, and enemy catalogs with fuzzy autocomplete.
+- **Keep the host in control.** Grant or revoke a friend's command access for the current room.
+- **Clean up your own spawns.** Despawn removes only matching objects previously created by this mod.
+- **Use a dedicated console.** `F2` works independently of the chat interface and does not replace the game's chat commands.
+
+## Console controls: press F2 to open
 
 | Key | Action |
 |---|---|
@@ -68,6 +100,11 @@ Accepting the autocomplete suggestion matters: fuzzy matching helps you find a t
 /spawn <target> [count=1] [location=player-location]
 /spawn <target> <location>
 /despawn <target> [count=all]
+/revive <player|all>
+/heal <player|all> [full|amount]
+/summon <player|all>
+/truck <player|all>
+/chain <player|all> revive heal truck
 /grant <player>
 /revoke <player>
 /permissions
@@ -75,6 +112,10 @@ Accepting the autocomplete suggestion matters: fuzzy matching helps you find a t
 ```
 
 Targets use one of three catalog prefixes: `item:`, `valuable:`, or `enemy:`. Weapons, upgrades, and other usable equipment are found through the `item:` catalog.
+
+Player commands use `all` or a character selected with fuzzy autocomplete, such as `"Bob Builder#2"`. Every character is available, including the host and dead players. `/revive` requires an explicit target; `/revive all` revives the party, while `/revive "Bob Builder#2"` revives only Bob. Use Up/Down to reach suggestions beyond the eight visible rows.
+
+The player command set also includes `/kill`, `/damage`, `/knockback`, `/maxhealth`, `/expression`, `/speak`, `/wings`, `/tumble`, `/flicker`, `/animationspeed`, `/pupils`, `/falling`, and `/resetpush`. `/summon` gathers the selected characters at the command sender's position, including when a granted friend submits it. `/chain all revive heal truck` performs those three actions in order. See the [player command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md#player-commands) for parameters and defaults.
 
 Spawn and numeric despawn counts must be whole numbers from `1` through `500`. Invalid or out-of-range counts return an error instead of being silently changed.
 
@@ -98,7 +139,7 @@ For the full grammar and edge cases, see the [complete command reference](https:
 
 ## Multiplayer: host control with friend access
 
-All spawn and despawn mutations are host-authoritative. A friend's console sends a request to the lobby host; the host validates the request and performs the world change.
+All spawn, despawn, and player commands are host-authoritative. A friend's console sends a request to the lobby host; the host validates the request and performs the world change. Player effects that the game restricts to a character's owner use an authenticated host-to-owner request after the host approves them.
 
 | Player | Needs the mod? | Can use the console? |
 |---|---:|---|
@@ -111,11 +152,13 @@ All spawn and despawn mutations are host-authoritative. A friend's console sends
 
 1. The host opens their local console with `F2`.
 2. The host enters `/grant ` and uses autocomplete to select the friend. Player selectors include the Photon actor number, such as `"Player Name#2"`, so duplicate nicknames remain unambiguous.
-3. The friend can now run spawn and despawn commands from their own console.
+3. The friend can now run spawn, despawn, and all player commands from their own console.
 4. The host can enter `/revoke ` and select that player to remove access.
 5. Anyone with the mod can use `/permissions` to check the current permission state.
 
 Only the host's local console can run `/grant` and `/revoke`; those commands are rejected when sent over the network. Grants belong to the current room, are removed when a player leaves, and are cleared when the room or lobby host changes.
+
+Everyone submitting the new commands should install version **2.1.0**. Characters targeted by `/expression`, `/animationspeed`, `/pupils`, or `/falling` also need this version for the owner relay; they do not need a grant just to receive an effect. Other player actions use the game's host-compatible RPCs and can affect unmodded characters. Unavailable targets and unsupported clients produce explicit errors, including partial results for `all`. The AllPlayerCommands mod is not a dependency.
 
 ## Despawning is intentionally scoped
 
@@ -135,7 +178,7 @@ RepoCommandConsole tracks what it creates. `/despawn` removes the newest matchin
 
 Make sure you launched the correct profile with **Start Modded**, RepoCommandConsole is enabled on this computer, and the profile contains BepInExPack `5.4.2305` plus REPOLib `4.2.0`. Also check whether the console toggle key was changed from its default in the BepInEx configuration.
 
-### Why was my friend's spawn or despawn command rejected?
+### Why was my friend's command rejected?
 
 The lobby host must run `/grant <player>` from the host's own console after that friend joins the room. The friend also needs RepoCommandConsole installed. Grants do not carry into another room and are cleared if the lobby host changes.
 
@@ -161,8 +204,13 @@ The mod searches for a collision-free level position and returns an explicit err
 
 ## More information
 
+- [Install and first-command tutorial](https://github.com/jkieley/repo-live-control/blob/main/docs/promotion/getting-started.md)
 - [Complete command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md)
 - [Changelog](https://github.com/jkieley/repo-live-control/blob/main/thunderstore/CHANGELOG.md)
 - [Report a problem](https://github.com/jkieley/repo-live-control/issues)
+
+### Find your next spawn
+
+The [visual item-and-valuables guide on Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=3773432391) offers ideas for shop goods, weapons, upgrades, drones, carts, and valuables. Its availability and names may change. Use the console's live autocomplete for the canonical target strings available in your current game; the guide is not an enemy catalog or a guarantee that a target exists.
 
 Developer architecture, networking protocol, testing, packaging, and local-install guidance remain in the repository's [`docs`](https://github.com/jkieley/repo-live-control/tree/main/docs) directory so this page can stay focused on players.

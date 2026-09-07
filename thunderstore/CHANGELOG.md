@@ -2,6 +2,23 @@
 
 All notable changes to RepoCommandConsole are documented here.
 
+## 2.1.0 - 2026-09-07
+
+- Added team recovery commands: revive, heal, summon, and truck return for one player or everyone, plus ordered command chains.
+- Added full-word player commands for kill, revive, healing, maximum health, summon, truck return, knockback, damage, expression, speech, wings, tumble, flicker, animation speed, pupils, falling, and push reset.
+- Added player-or-all fuzzy completion, including the host and inactive dead characters; duplicate names use explicit actor selectors. All suggestions are accessible with Up/Down, including larger lobbies.
+- Added `/chain <player|all> kill revive heal summon truck` with up to eight ordered actions.
+- Routed granted clients through the existing host executor, with authorization rechecks during batched work and sustained effects.
+- Added a restricted host-to-owner relay for expression, animation, pupils, and falling, with owner acknowledgement, character-view binding, expiry, and sender validation. Those target clients need version 2.1.0 or newer.
+- Used the current four-argument health RPC and retained vanilla RPC security checks.
+- Added parser, completion, permission, owner-relay security, and installed-game API contract tests. AllPlayerCommands is not required.
+- Introduced the selected Console Companion mascot icon and refreshed the package description and README with the new player features, genuine gameplay screenshots, and a getting-started tutorial.
+
+## 2.0.1 - 2026-09-07
+
+- Added real in-game screenshots of fuzzy autocomplete, a successful spawn command, and despawn cleanup to the package page.
+- Documentation-only package update; the plugin DLL, dependencies, and icon are unchanged from 2.0.0.
+
 ## 2.0.0 - 2026-08-26
 
 - Added a dedicated in-game command console that remains available when normal game chat is disabled.
