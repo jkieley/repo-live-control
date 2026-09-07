@@ -1,0 +1,28 @@
+{
+  "duration_seconds": 56,
+  "width": 1280,
+  "height": 720,
+  "fps": 24,
+  "frames": 1344,
+  "audio": false,
+  "codec": "H.264 / yuv420p",
+  "output_bytes": 1095947,
+  "output_sha256": "54f827891a546440023cafe8a5c6c8d036c20c5a73a247b2c29399c6616c6e08",
+  "sources": {
+    "docs\\promotion\\logo-options\\option-b-console-companion.png": "e59273eb59cf06c419fa8c7fcdece0673f48f0464065f1c78e0eae64007ddeee",
+    "docs\\promotion\\screenshots\\repo-command-console-autocomplete.jpg": "319369ec79dafbca1a0ae2a55a1b9f81ce0cffbaa893d1ca003c68f7b183f248",
+    "docs\\promotion\\screenshots\\repo-command-console-despawn-success.jpg": "1c01fc14f2dd36630c9f894e2dc028156ddacccfea3551927facbe3acba765b4",
+    "docs\\promotion\\screenshots\\repo-command-console-spawn-success.jpg": "dc6d1ac0bcc63fe7c49ea736884b8e99440f9bbf71470c5e87c7f94908594312"
+  },
+  "chapter_seconds": [
+    6,
+    6,
+    7,
+    8,
+    7,
+    6,
+    7,
+    9
+  ],
+  "verification_exit_code": 0
+}

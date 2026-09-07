@@ -1,0 +1,67 @@
+1
+00:00:00,000 --> 00:00:03,000
+REPO Command Console: one searchable F2 console.
+
+2
+00:00:03,000 --> 00:00:06,000
+Screenshot walkthrough: 2.0.0 captures,
+plus 2.1.0 command text examples.
+
+3
+00:00:06,000 --> 00:00:12,000
+In a lobby or run, press F2 to open the console.
+F2 toggles it; Escape closes it.
+
+4
+00:00:12,000 --> 00:00:15,500
+Type part of a target name.
+Use Up or Down to select a suggestion.
+
+5
+00:00:15,500 --> 00:00:19,000
+Press Tab to accept the exact target
+from your live game catalog.
+
+6
+00:00:19,000 --> 00:00:23,000
+Press Enter to spawn, then read the result.
+
+7
+00:00:23,000 --> 00:00:27,000
+This genuine capture shows a successful spawn
+of three Strength Upgrades.
+
+8
+00:00:27,000 --> 00:00:34,000
+Despawn matching objects created by this mod.
+Normal level content is left alone.
+
+9
+00:00:34,000 --> 00:00:37,000
+New in 2.1.0; text examples, not live footage.
+/revive all needs available death heads.
+
+10
+00:00:37,000 --> 00:00:40,000
+/heal all fully heals living targets.
+Select one player, or use all.
+
+11
+00:00:40,000 --> 00:00:44,000
+/chain all revive heal truck
+runs the actions in that order.
+
+12
+00:00:44,000 --> 00:00:47,000
+Each group-wide step finishes before the next.
+A failed step stops the chain.
+
+13
+00:00:47,000 --> 00:00:52,000
+Find RepoCommandConsole for R.E.P.O.
+Install with Mod Manager, then Start Modded.
+
+14
+00:00:52,000 --> 00:00:56,000
+The host and command users need the mod.
+The host controls multiplayer permissions.
