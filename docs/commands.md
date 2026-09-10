@@ -76,6 +76,7 @@ Every command below requires `<player|all>` as its first argument. Type part of 
 | `/revive <player|all>` | Revive at the death head; living characters are skipped. A death head must exist. |
 | `/heal <player|all> [full|amount]` | Full healing by default, or add a positive integer amount. Dead characters must be revived first. |
 | `/maxhealth <player|all> [maximum=200]` | Change maximum health, reducing current health if necessary. Does not revive or fill the new maximum. |
+| `/resetupgrades <player|all>` | Unreleased: set consumed vanilla upgrade levels to zero and restore their base values. Maximum health becomes 100; current health is capped at 100, without healing or reviving. Requires a target and takes no options. |
 | `/summon <player|all>` | Move characters/death heads to the command sender's position captured when the host starts the command. |
 | `/truck <player|all>` | Move characters/death heads to the truck safety spawn. |
 | `/knockback <player|all> [strength=5]` | Apply an impulse away from the sender, with an upward component. |
@@ -88,7 +89,7 @@ Every command below requires `<player|all>` as its first argument. Type part of 
 | `/animationspeed <player|all> [speed=0.5] [in=0.05] [out=0.2] [seconds=3]` | Temporarily override animation speed; `off` clears the override. Transition parameters are passed to the game's animation API. |
 | `/pupils <player|all> [size=1.8] [priority=10] [springIn=25] [dampIn=0.8] [springOut=12] [dampOut=0.8] [seconds=3]` | Temporarily override pupils; `off` clears the override. |
 | `/falling <player|all> [on|off]` | Maintain or clear the falling flag; default on. |
-| `/resetpush <player|all>` | Reset the physics pusher state. |
+| `/resetpush <player|all>` | Reset the physics pusher state, without changing consumed upgrade levels. |
 | `/chain <player|all> <actions...>` | Run 1–8 full-word actions, in order: `kill`, `revive`, `heal`, `summon`, `truck`. Each step finishes for the selected group before the next starts. |
 
 Examples:
@@ -97,6 +98,8 @@ Examples:
 /revive all
 /heal "Bob Builder#2" 50
 /maxhealth all 200
+/resetupgrades "Bob Builder#2"
+/resetupgrades all
 /wings "Bob Builder#2" pink
 /animationspeed all 2 0.05 0.2 10
 /speak all Ready for extraction!
@@ -104,6 +107,10 @@ Examples:
 ```
 
 HP, healing, and damage values accept integers `1..1000000`. Expression indices accept `0..1000` and must exist at runtime. Knockback accepts `0..10000`; flicker and animation/pupil multipliers accept `0..100`. Timed effects accept `0.1..3600` seconds. Animation transition values accept `0.001..100`. Pupil priority accepts integers `0..1000`, springs `0.001..1000`, and damping `0.001..100`. Non-finite numbers and surplus arguments are rejected.
+
+`/resetupgrades` is available in the unreleased source build, after 2.2.0. It resets consumed vanilla upgrades for the selected characters; it does not remove unused upgrade items or reset upgrades added by other mods. Use `/despawn` to remove unused matching items created by this mod. `/resetupgrades` uses the same host and current-room grant permissions as the other player commands.
+
+The reset covers all 13 vanilla upgrade types: health, stamina, extra jump, launch, map player count, range, speed, strength, throw, crouch rest, tumble wings, tumble climb, and death-head battery. The game receives zero levels through its normal upgrade RPCs, updating upgrade counts and their live effects. Cleared counts follow the game's normal save lifecycle; the command does not force a mid-level save. The host and command sender need the new build, while target players can receive the reset without installing this mod.
 
 Granted clients can execute every player command through the host. The host and anyone submitting these commands need this version. Target characters also need **RepoCommandConsole 2.1.0+** for expression, animation speed, pupils, and falling, because those effects run on the character owner after host authorization. No extra grant is required just to be a target. Other actions use vanilla host-compatible RPCs. AllPlayerCommands itself is not required.
 

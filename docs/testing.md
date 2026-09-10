@@ -34,6 +34,12 @@ Version 2.1.0 adds coverage for all 18 full-word player commands, explicit singl
 
 `RepoLiveControl.GameApiTests` reads the installed `Assembly-CSharp.dll` metadata and IL using the profile's Mono.Cecil. It checks 24 private-field, RPC-signature, and authority contracts, including the four explicit arguments to `UpdateHealthRPC` and the owner-only expression/animation/falling checks. It does not load or mutate the game.
 
+## Upgrade reset checks (unreleased)
+
+The command harness covers `/resetupgrades <player|all>` selection, argument rejection, completion, and the existing host/grant permission rules. The player-runtime harness exercises the production reset against separate simulated peer stats, including peers with more upgrades than the host. It checks all 13 vanilla upgrade types, repeat resets, unrelated player/custom/item state, health capping, dead players, initialization failures, and cancellation during bulk work. Installed-game contracts check the vanilla RPC signatures and authority, per-type clamped subtraction and live effects, zero-valued dictionary stripping, and the health setter that avoids the damaging negative-health-upgrade path.
+
+Live singleplayer and two-client reset acceptance has not been performed. For a private two-client run with the new host build, reset a named living player with several upgrade types and verify the other player is unchanged. Confirm the target owner's stamina, speed, jumps, and grab stats return to their unupgraded values; health above 100 is capped, lower health is retained, and dead players stay dead. Repeat the reset, then test `all` and a granted sender. Progress through the normal save cycle and reload to verify the cleared levels persist. Third-party upgrade types and unused upgrade items should remain unchanged.
+
 ## Player-command two-client acceptance
 
 Use a private test run with two independent Steam/Photon actors on the current 2.2.0 build. These player commands were introduced in 2.1.0. Automated tests do not substitute for this acceptance pass.

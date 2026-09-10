@@ -9,6 +9,7 @@ The independent console sends the raw slash command to the host, which parses it
 | `/spawn <target> [count=1] [location=player-location]` | Spawn a canonical `item:`, `valuable:`, or `enemy:` target; location may directly follow target while count defaults to `1`. |
 | `/despawn <target> [count=all]` | Remove matching objects previously spawned through this mod. |
 | `/<player-action> <player|all> [options...]` | Run one of the full-word player actions in `docs/commands.md` through the host. |
+| `/resetupgrades <player|all>` | Unreleased: reset consumed vanilla upgrade levels to zero and restore their base values. No options. |
 | `/chain <player|all> <actions...>` | Run 1–8 ordered kill/revive/heal/summon/truck actions. |
 | `/grant <player>` | Locally grant a non-host actor for this room; host only. |
 | `/revoke <player>` | Locally revoke a room grant; host only. |
@@ -79,6 +80,12 @@ Pipe placements are `safe`, `near-player`, and `at-player`. The pipe thread neve
 ## Player actions (2.1.0)
 
 The existing request envelope and room grants authorize all player actions. The host parses every command, resolves an exact player selector or the explicit `all` token, and captures avatar references including inactive death avatars. Each player job processes up to four targets per frame and rechecks its bound room/host/grant before subsequent work. Player jobs advance alongside ordinary console dispatch, so `/revoke` can interrupt an active player batch. A chain waits for each group-wide step before starting the next. Changes with an observable health/death state are checked for up to three seconds; unobservable visual/physics RPC dispatch is reported as applied without claiming every peer rendered it. Jobs stop after 25 seconds with partial counts.
+
+The unreleased `/resetupgrades <player|all>` action uses the existing player-action request path and authorization checks. It requires an explicit player selector or `all`, rejects extra arguments, and resets consumed vanilla upgrade levels to zero for the captured targets. It does not remove upgrade item objects or reset mod-defined upgrades. For example, `/resetupgrades "Bob Builder#2"` selects one character; `/resetupgrades all` selects every current character. `/resetpush` remains a separate physics-pusher action.
+
+Upgrade reset waits for level generation and a short initialization delay, then preflights the selected player's identity, components, and all 13 registered upgrade dictionaries. Twelve non-health types use `TesterUpgradeCommandRPC` with `int.MinValue`: vanilla clamps each peer's count to zero and subtracts its effective live bonus. Health uses `UpdateStat` to clear its level and `UpdateHealthRPC` to set maximum HP to 100 and cap current HP, avoiding the damage caused by the negative health-upgrade path. A missing stripped dictionary entry counts as zero. Completion observes the host's cleared counts and maximum HP; remote RPCs are dispatched without per-peer acknowledgements.
+
+Cleared counts participate in the game's normal save lifecycle; there is no forced mid-level save. Unknown third-party upgrade types are preserved. The host and command sender need the new build; targets use vanilla RPC handlers and do not require RepoCommandConsole or an owner-effect relay capability.
 
 Expression, animation speed, pupils, and falling use the character owner's game API after host approval. This preserves vanilla owner-only security checks. Both ends advertise local Photon player property `rcc.player-effects=1` when their session becomes active. This is a capability signal, never a grant or authorization source.
 

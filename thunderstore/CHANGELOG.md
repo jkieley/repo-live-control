@@ -2,6 +2,11 @@
 
 All notable changes to RepoCommandConsole are documented here.
 
+## Unreleased
+
+- Added `/resetupgrades <player|all>` to set consumed vanilla upgrade levels to zero and restore their base values for one selected character or everyone. The command takes no options and uses the existing host and granted-client permission system.
+- Reset all 13 vanilla upgrade types through the game's RPCs, restore maximum health to 100, and cap current health without healing or reviving. Cleared upgrades follow the normal save lifecycle; third-party upgrade types are preserved.
+
 ## 2.2.0 - 2026-09-07
 
 - Added a full scrollable spawn catalog: enter `/spawn` without a search query, browse with the mouse wheel, scrollbar, or arrow keys, and keep fuzzy search for finding a particular target.

@@ -7,7 +7,7 @@ internal static partial class Program
 {
     private static readonly string[] PlayerVerbs = {
         "kill", "revive", "heal", "summon", "truck", "knockback", "damage", "expression", "speak",
-        "wings", "tumble", "maxhealth", "flicker", "animationspeed", "pupils", "falling", "resetpush", "chain"
+        "wings", "tumble", "maxhealth", "resetupgrades", "flicker", "animationspeed", "pupils", "falling", "resetpush", "chain"
     };
 
     private static void PlayerCommandGrammarAndPermissions()
@@ -51,6 +51,31 @@ internal static partial class Program
         Equal("full", SlashCommandParser.Parse("/heal all").Command.PlayerAction.Arguments[0]);
         Equal(200, SlashCommandParser.Parse("/maxhealth all").Command.PlayerAction.Integer(0));
         Equal(3f, SlashCommandParser.Parse("/tumble all").Command.PlayerAction.Number(0));
+    }
+
+    private static void ResetUpgradesCommandTargets()
+    {
+        var players = new[] { new PlayerChoice("Host", 1), new PlayerChoice("Bob Builder", 2),
+            new PlayerChoice("Bob Builder", 3) };
+        foreach (string target in new[] { "all", "Bob Builder#2" })
+        {
+            string input = "/resetupgrades " + CommandTokenizer.QuoteArgument(target);
+            var parsed = SlashCommandParser.Parse(input);
+            True(parsed.Success, input);
+            Equal("resetupgrades", parsed.Command.PlayerAction.Name);
+            Equal(target, parsed.Command.Player);
+            Equal(0, parsed.Command.PlayerAction.Arguments.Count);
+            var selected = PlayerSelection.Resolve(parsed.Command.Player, players);
+            Equal(target == "all" ? 3 : 1, selected.Count);
+            if (target != "all") Equal(2, selected[0].ActorNumber);
+            string forwarded = parsed.Command.PlayerAction.ForPlayer("Bob Builder#3");
+            Equal("/resetupgrades \"Bob Builder#3\"", forwarded);
+            Equal(0, SlashCommandParser.Parse(forwarded).Command.PlayerAction.Arguments.Count);
+            ParseFails(input + " 0", CommandParseErrorCode.TooManyArguments);
+            True(!CommandNetworkPolicy.ValidateRemoteCommand(input + " 0", true).Allowed,
+                "A grant cannot bypass reset argument validation");
+        }
+        True(!PlayerActionCommands.RequiresOwner("resetupgrades"), "Upgrade resets execute on the host");
     }
 
     private static void PlayerArgumentRejection()
@@ -102,6 +127,9 @@ internal static partial class Program
         Equal(0, CommandCompletionEngine.GetCompletions("/animationspeed all off ", 24, catalog, 512).Count);
         Equal(0, CommandCompletionEngine.GetCompletions("/grant ", 7, catalog, 512).Count);
         DoesNotContainValue(CommandCompletionEngine.GetCompletions("/", 1, catalog, 512), "/grant", "Non-host cannot manage grants");
+        ContainsValue(CommandCompletionEngine.GetCompletions("/resetup", 8, catalog, 512), "/resetupgrades", "Reset command completion");
+        foreach (string input in new[] { "/resetupgrades all ", "/resetupgrades \"Player 1#1\" " })
+            Equal(0, CommandCompletionEngine.GetCompletions(input, input.Length, catalog, 512).Count);
     }
 
     private static void PlayerChainsAndSpeech()
@@ -133,7 +161,7 @@ internal static partial class Program
             True(OwnerActionPolicy.Validate(payload, 1, 1, "Bob Builder#2", 2001, 9999) == null, "Future commands rejected");
             True(OwnerActionPolicy.Validate("2001|10000|/" + verb + " all", 1, 1, "Bob Builder#2", 2001, 10001) == null, "Owner relay cannot fan out");
         }
-        foreach (string command in new[] { "/grant Bob", "/kill \"Bob Builder#2\"", "/chain \"Bob Builder#2\" kill revive", "/spawn item:all", "/permissions" })
+        foreach (string command in new[] { "/grant Bob", "/kill \"Bob Builder#2\"", "/resetupgrades \"Bob Builder#2\"", "/chain \"Bob Builder#2\" kill revive", "/spawn item:all", "/permissions" })
             True(OwnerActionPolicy.Validate("2001|10000|" + command, 1, 1, "Bob Builder#2", 2001, 10001) == null, "Relay is not a generic command endpoint");
         True(OwnerActionPolicy.Validate("2001|2147483640|/falling \"Bob Builder#2\"", 1, 1, "Bob Builder#2", 2001, unchecked(2147483640 + 100)) != null,
             "Photon server timestamp wraparound");

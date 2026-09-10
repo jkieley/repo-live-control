@@ -68,6 +68,7 @@ namespace RepoLiveControl.Commands
                 { "wings", new[] { Word("on", "on", "off", "pink") } },
                 { "tumble", new[] { Numeric("3", 0.1, 3600, false, new[] { "on", "off" }, new[] { "on", "off", "3", "10", "30" }) } },
                 { "maxhealth", new[] { Numeric("200", 1, 1000000, true, null, new[] { "100", "200", "500", "1000" }) } },
+                { "resetupgrades", new Argument[0] },
                 { "flicker", new[] { Numeric("2", 0, 100, false, null, new[] { "1", "2", "5" }) } },
                 { "animationspeed", new[] { Numeric("0.5", 0, 100, false, new[] { "off" }, new[] { "off", "0.5", "1", "2" }),
                     Numeric("0.05", 0.001, 100), Numeric("0.2", 0.001, 100), Numeric("3", 0.1, 3600) } },

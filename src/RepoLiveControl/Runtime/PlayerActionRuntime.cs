@@ -19,6 +19,7 @@ namespace RepoLiveControl.Runtime
             internal List<PlayerActionCommand> Steps;
             internal int Step, Next, Waiting, Applied, Skipped, Failed;
             internal float Deadline, NextStepAt;
+            internal float UpgradeResetAt;
             internal bool Finished;
             internal Vector3 Origin;
             internal Quaternion Rotation;
@@ -43,6 +44,11 @@ namespace RepoLiveControl.Runtime
         private static readonly List<Effect> Effects = new List<Effect>();
         private static readonly Dictionary<string, FieldInfo> Fields = new Dictionary<string, FieldInfo>();
         private static readonly MethodInfo FallingSet = AccessTools.Method(typeof(PlayerAvatar), "FallingSet");
+        // Explicit vanilla list: third-party upgrade dictionaries may have their own effects.
+        private static readonly string[] UpgradeNames = {
+            "CrouchRest", "DeathHeadBattery", "ExtraJump", "Health", "Launch", "MapPlayerCount",
+            "Range", "Speed", "Stamina", "Strength", "Throw", "TumbleClimb", "TumbleWings"
+        };
         private static PlayerAvatar fallingPlayer;
         private static object fallingRoom;
         private static int fallingMaster;
@@ -54,6 +60,9 @@ namespace RepoLiveControl.Runtime
             if (Jobs.Count >= 32) throw new InvalidOperationException("Too many player commands are active.");
             List<PlayerAvatar> targets = RuntimePlayerCatalog.Resolve(command.Player);
             if (targets.Count == 0) throw new InvalidOperationException("No player characters are available in this scene.");
+            bool resetUpgrades = command.Name == "resetupgrades";
+            if (resetUpgrades && (LevelGenerator.Instance == null || !LevelGenerator.Instance.Generated))
+                throw new InvalidOperationException("Wait for the level to finish generating before resetting upgrades.");
             var steps = command.Name == "chain"
                 ? command.Arguments.Select(name => SlashCommandParser.Parse("/" + name + " " + CommandTokenizer.QuoteArgument(command.Player)).Command.PlayerAction).ToList()
                 : new List<PlayerActionCommand> { command };
@@ -66,7 +75,9 @@ namespace RepoLiveControl.Runtime
                 origin = anchor.position; rotation = anchor.rotation;
             }
             Jobs.Add(new Job { Request = request, Targets = targets, Steps = steps,
-                Deadline = Time.realtimeSinceStartup + 25f, Origin = origin, Rotation = rotation });
+                Deadline = Time.realtimeSinceStartup + 25f, Origin = origin, Rotation = rotation,
+                // Vanilla applies saved upgrades in LateStart after a 0.2s scaled wait.
+                UpgradeResetAt = resetUpgrades ? Time.time + 0.5f : 0f });
         }
 
         internal static void ProcessFrame()
@@ -111,6 +122,7 @@ namespace RepoLiveControl.Runtime
                     }
                 }
                 if (Time.realtimeSinceStartup < job.NextStepAt) continue;
+                if (Time.time < job.UpgradeResetAt) continue;
                 PlayerActionCommand action = job.Steps[job.Step];
                 for (int batch = 0; batch < 4 && job.Next < job.Targets.Count; batch++)
                 {
@@ -209,6 +221,7 @@ namespace RepoLiveControl.Runtime
                     else health.UpdateHealthRPC(current, max, true, false);
                     return () => health != null && Field<int>(health, "maxHealth") == max;
                 }
+                case "resetupgrades": return ResetUpgrades(player);
                 case "summon":
                     Teleport(player, job.Origin, job.Rotation); return null;
                 case "truck":
@@ -237,6 +250,65 @@ namespace RepoLiveControl.Runtime
                     player.UpgradeTumbleWingsVisualsActive(action.Arguments[0] != "off", action.Arguments[0] == "pink"); return null;
                 default: throw new InvalidOperationException("Unsupported player action: " + action.Name);
             }
+        }
+
+        private static Func<bool> ResetUpgrades(PlayerAvatar player)
+        {
+            StatsManager stats = StatsManager.instance;
+            PunManager pun = PunManager.instance;
+            if (stats == null || pun == null || Field<StatsManager>(pun, "statsManager") != stats)
+                throw new InvalidOperationException("Player upgrade stats are not ready yet.");
+            string steamId = SemiFunc.PlayerGetSteamID(player);
+            if (string.IsNullOrWhiteSpace(steamId) || SemiFunc.PlayerAvatarGetFromSteamID(steamId) != player ||
+                RuntimePlayerCatalog.Players().Count(candidate => SemiFunc.PlayerGetSteamID(candidate) == steamId) != 1)
+                throw new InvalidOperationException("The selected player's upgrade identity is unavailable or ambiguous.");
+            PlayerHealth health = RequireHealth(player);
+            PlayerTumble tumble = RequireTumble(player);
+            if (LevelGenerator.Instance == null || !LevelGenerator.Instance.Generated ||
+                !Field<bool>(health, "healthSet") || !Field<bool>(tumble, "setup"))
+                throw new InvalidOperationException("The selected player's upgrade components are still initializing.");
+            if (player.physGrabber == null)
+                throw new InvalidOperationException("The selected player's grabber is not ready yet.");
+            PhotonView punView = pun.GetComponent<PhotonView>();
+            PhotonView healthView = health.GetComponent<PhotonView>();
+            if (PhotonNetwork.InRoom && (punView == null || healthView == null))
+                throw new InvalidOperationException("Player upgrades have no network view.");
+
+            // Resolve and validate every dictionary before changing any of this player's stats.
+            var registered = Field<SortedDictionary<string, Dictionary<string, int>>>(stats, "dictionaryOfDictionaries");
+            var upgrades = new List<Dictionary<string, int>>();
+            foreach (string name in UpgradeNames)
+            {
+                string key = "playerUpgrade" + name;
+                Dictionary<string, int> values;
+                if (registered == null || !registered.TryGetValue(key, out values) || values == null ||
+                    !ReferenceEquals(values, Field<Dictionary<string, int>>(stats, key)))
+                    throw new InvalidOperationException("Player upgrade dictionary is unavailable: " + key + ".");
+                int count;
+                if (values.TryGetValue(steamId, out count) && count < 0)
+                    throw new InvalidOperationException("Player upgrade count is invalid: " + key + ".");
+                upgrades.Add(values);
+            }
+
+            foreach (string name in UpgradeNames)
+            {
+                if (name == "Health") continue;
+                // Vanilla clamps count + delta to zero and removes only the effective delta
+                // from live stats. This also clears peers whose counts exceed the host's.
+                // Do not set dictionaries first: that would suppress the live-stat subtraction.
+                if (PhotonNetwork.InRoom)
+                    punView.RPC("TesterUpgradeCommandRPC", RpcTarget.All, steamId, name, int.MinValue);
+                else pun.TesterUpgradeCommandRPC(steamId, name, int.MinValue);
+            }
+            // The vanilla negative health-upgrade path calls Hurt on the owner. Set the
+            // stored level and cap HP directly instead, preserving death and low health.
+            pun.UpdateStat("playerUpgradeHealth", steamId, 0);
+            int current = Mathf.Clamp(Field<int>(health, "health"), 0, 100);
+            if (PhotonNetwork.InRoom)
+                healthView.RPC("UpdateHealthRPC", RpcTarget.All, current, 100, false, false);
+            else health.UpdateHealthRPC(current, 100, false, false);
+            return () => stats != null && health != null && Field<int>(health, "maxHealth") == 100 &&
+                upgrades.All(values => !values.ContainsKey(steamId) || values[steamId] == 0);
         }
 
         internal static void ApplyOwner(PlayerActionCommand action, PlayerAvatar player)

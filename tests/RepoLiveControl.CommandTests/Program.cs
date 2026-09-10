@@ -38,6 +38,7 @@ internal static partial class Program
     {
         Run("all full-word player commands and remote grants", PlayerCommandGrammarAndPermissions);
         Run("player argument defaults and serialization", PlayerArgumentRoundTrips);
+        Run("upgrade reset targets and argument validation", ResetUpgradesCommandTargets);
         Run("player numeric and mode validation", PlayerArgumentRejection);
         Run("individual/all player resolution", IndividualPlayerResolution);
         Run("non-host fuzzy character and mode completion", PlayerActionCompletion);

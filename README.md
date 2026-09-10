@@ -102,6 +102,17 @@ The [catalog coverage audit](https://github.com/jkieley/repo-live-control/blob/m
 
 Every player command requires a target. Revive needs an available death head, and heal applies to living characters. `/maxhealth` changes the current session's maximum health; it is not a permanent upgrade purchase. Characters receiving expression, animation-speed, pupil, or falling effects also need **2.1.0 or newer**. See [multiplayer requirements](#multiplayer-host-control-with-friend-access) and the [full player command reference](https://github.com/jkieley/repo-live-control/blob/main/docs/commands.md#player-commands).
 
+The unreleased source build also adds `/resetupgrades <player|all>` to set consumed vanilla upgrade levels to zero and restore their base values. It takes no options. The host or a friend with a current room grant can run it for one selected character or everyone:
+
+```text
+/resetupgrades "Bob Builder#2"
+/resetupgrades all
+```
+
+The reset restores maximum health to 100 and caps current health at 100 without healing or reviving. The game records the cleared upgrades through its normal save lifecycle; the command does not force an immediate save. The host and anyone submitting `/resetupgrades` need the new build; target players receive the game's normal RPCs and do not need this mod.
+
+`/resetpush` resets the physics pusher state; `/resetupgrades` resets consumed upgrades. `/despawn` removes unused upgrade objects created by this mod.
+
 ## Built for custom runs
 
 - **Find targets without memorizing internal names.** Search the live item, valuable, and enemy catalogs with fuzzy autocomplete.
